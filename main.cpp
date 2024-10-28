@@ -2,6 +2,7 @@
 #include <SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 
 
@@ -33,9 +34,30 @@ void read(char* path) {
     SDL_free(fileContent);
 }
 
+char* extractPath(const char* line) {
+    const char* start = strchr(line, '"');
+    if (!start) {
+        return NULL; // no starting double quotes found
+    }
+    const char* end = strchr(start + 1, '"');
+    if (!end) {
+        return NULL; // no closing double quotes found
+    }
+
+    size_t len = end - start - 1;
+    char* path = (char*)malloc(len + 1);
+    if (!path) {
+        perror("Memory allocation error");
+        exit(1);
+    }
+    strncpy(path, start + 1, len);
+    path[len] = '\0';
+
+    return path;
+}
+
 int main(int argc, char *argv[]) {
     const char* confFilePath = "/mnt/c/Users/Eyu/.currTasks.conf";
-    const char* CONF_FILENAME = "currTasks.conf";
     const int MAX_LINES_IN_FILE = 100;
 
     // Get config file vars
@@ -43,6 +65,7 @@ int main(int argc, char *argv[]) {
     FILE* file = fopen(confFilePath, "r");
     if (!file) {
         perror("Error opening file");
+        printf("'%s' not found\n", confFilePath);
         return 1;
     }
 
@@ -81,6 +104,24 @@ int main(int argc, char *argv[]) {
     printf("Lines read from %s:\n", confFilePath);
     for (size_t i = 0; i < numLines; ++i) {
         printf("%zu: %s\n", i + 1, lines[i]);
+    }
+
+    /* lines is an array of addresses, each that point to a char (which is a char string) */
+    // extract the path strings from all the lines
+    size_t numberOfLines = sizeof(lines) / sizeof(lines[0]);
+    char* extractedPaths[MAX_LINES_IN_FILE];
+    size_t numExtractedPaths = 0;
+
+    for (size_t i = 0; i < numLines; ++i) {
+        char* path = extractPath(lines[i]);
+        if (path) {
+            extractedPaths[numExtractedPaths++] = path;
+        }
+    }
+
+    printf("Extracted paths:\n");
+    for (size_t i = 0; i < numExtractedPaths; ++i) { // TODO: i++ -> ++i
+        printf("%zu: %s\n", i + 1, extractedPaths[i]);
     }
 
     printf("Initializing SDL\n");
