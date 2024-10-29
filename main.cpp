@@ -3,8 +3,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 
+
+const char* getHomeDir() {
+    return getenv("HOME");
+}
 
 void read(char* path) {
     size_t fileSize = sizeof(path);
@@ -57,11 +62,22 @@ char* extractPath(const char* line) {
 }
 
 int main(int argc, char *argv[]) {
-    const char* confFilePath = "/mnt/c/Users/Eyu/.currTasks.conf";
+    const char* confFileName = "/.currTasks.conf";
     const int MAX_LINES_IN_FILE = 100;
 
-    // Get config file vars
+    // Get the user's home dir
+    const char* homeDir = getenv("HOME");
+    if(!homeDir) {
+        perror("Error getting home directory");
+        return 1;
+    }
+    printf("homeDir: %s\n", homeDir);
 
+    // Get the full file path
+    char confFilePath[1024]; // is this the same as char* confFilePath = (char*)malloc(1024) ??
+    snprintf(confFilePath, sizeof(confFilePath), "%s%s", homeDir, confFileName);
+
+    // Get config file vars
     FILE* file = fopen(confFilePath, "r");
     if (!file) {
         perror("Error opening file");
@@ -127,7 +143,8 @@ int main(int argc, char *argv[]) {
     printf("Initializing SDL\n");
     SDL_Init(0);
 
-    read("./data.txt");
+    char data[] = "./data.txt";
+    read(data);
 
     SDL_Quit();
 
