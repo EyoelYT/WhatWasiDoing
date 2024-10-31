@@ -1,5 +1,5 @@
 #include <iostream>
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -11,30 +11,30 @@ const char* getHomeDir() {
     return getenv("HOME");
 }
 
-void read(char* path) {
-    size_t fileSize = sizeof(path);
-    void* fileContent = SDL_LoadFile(path, &fileSize);
+char** readWaits(char* path, size_t* outLineCount) {
+    void* fileContent = SDL_LoadFile(path, NULL);
 
     if (!fileContent) {
-        printf("File Content: %s\n", fileContent);
-        printf("Error loading file: %s\n", SDL_GetError());
-        return;
+        printf("readWaits::fileContent: %s\n", fileContent);
+        printf("readWaits::Error loading file: %s\n", SDL_GetError());
+        return NULL;
     }
 
-    size_t size;
-    SDL_RWops* context = SDL_RWFromFile(path, "r");
-    if (context) {
-        size = SDL_RWsize(context);
-        SDL_RWclose(context);
-    } else {
-        printf("Error opening file for calculation");
-        SDL_free(context);
-        return;
+    char** matchingLines = (char**)malloc(100 * sizeof(char*));
+    size_t count = 0;
+    char* line = strtok((char*)fileContent, "\n");
+
+    // Search for "WAIT" in each line
+    while (line != NULL) {
+        if (strstr(line, "WAIT")) {
+            matchingLines[count++] = strdup(line);
+            printf("readWaits::MATCHING WAITS:\n%s\n", line);
+        }
+        line = strtok(NULL, "\n");
     }
 
-    printf("Loaded fileSize: %lu\n", fileSize);
-    printf("Loaded size:     %lu\n", size);
-    printf("File Content:    %s", fileContent);
+    *outLineCount = count;
+    return matchingLines;
 
     SDL_free(fileContent);
 }
@@ -52,7 +52,7 @@ char* extractPath(const char* line) {
     size_t len = end - start - 1;
     char* path = (char*)malloc(len + 1);
     if (!path) {
-        perror("Memory allocation error");
+        perror("extractPath::Memory allocation error");
         exit(1);
     }
     strncpy(path, start + 1, len);
@@ -68,10 +68,10 @@ int main(int argc, char *argv[]) {
     // Get the user's home dir
     const char* homeDir = getenv("HOME");
     if(!homeDir) {
-        perror("Error getting home directory");
+        perror("main::Error getting home directory");
         return 1;
     }
-    printf("homeDir: %s\n", homeDir);
+    printf("\nmain::homeDir: %s\n\n", homeDir);
 
     // Get the full file path
     char confFilePath[1024]; // is this the same as char* confFilePath = (char*)malloc(1024) ??
@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
     // Get config file vars
     FILE* file = fopen(confFilePath, "r");
     if (!file) {
-        perror("Error opening file");
+        perror("main::Error opening file");
         printf("'%s' not found\n", confFilePath);
         return 1;
     }
@@ -102,14 +102,14 @@ int main(int argc, char *argv[]) {
         // put contents of buffer into new memory, make lines[*char] point to start of buffer
         lines[numLines] = strdup(buffer);
         if (!lines[numLines]) {
-           perror("Memory allocation error");
+           perror("main::Memory allocation error");
            fclose(file);
            return 1;
         }
 
         numLines++;
         if (numLines >= MAX_LINES_IN_FILE) {
-            printf("Warning: Reached maximum number of lines in file: %d", MAX_LINES_IN_FILE);
+            printf("main::Warning: Reached maximum number of lines in file: %d", MAX_LINES_IN_FILE);
             break;
         }
     }
@@ -117,14 +117,13 @@ int main(int argc, char *argv[]) {
     fclose(file);
 
     // Show the lines that are read
-    printf("Lines read from %s:\n", confFilePath);
+    printf("main::Lines read from %s:\n", confFilePath);
     for (size_t i = 0; i < numLines; ++i) {
         printf("%zu: %s\n", i + 1, lines[i]);
     }
 
     /* lines is an array of addresses, each that point to a char (which is a char string) */
     // extract the path strings from all the lines
-    size_t numberOfLines = sizeof(lines) / sizeof(lines[0]);
     char* extractedPaths[MAX_LINES_IN_FILE];
     size_t numExtractedPaths = 0;
 
@@ -135,16 +134,17 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    printf("Extracted paths:\n");
-    for (size_t i = 0; i < numExtractedPaths; ++i) { // TODO: i++ -> ++i
-        printf("%zu: %s\n", i + 1, extractedPaths[i]);
-    }
+    size_t matchingLinesCount;
 
-    printf("Initializing SDL\n");
+    printf("\nmain::Initializing SDL\n");
     SDL_Init(0);
 
-    char data[] = "./data.txt";
-    read(data);
+    printf("\nmain::Extracted paths:\n");
+    for (size_t i = 0; i < numExtractedPaths; ++i) {
+        printf("%zu: %s\n", i + 1, extractedPaths[i]);
+        readWaits(extractedPaths[i], &matchingLinesCount);
+    }
+    printf("main::Matches found: %lu\n", matchingLinesCount);
 
     SDL_Quit();
 
@@ -152,6 +152,6 @@ int main(int argc, char *argv[]) {
     for (size_t i = 0; i < numLines; ++i) {
         free(lines[i]);
     }
-    printf("Exit\n");
+    printf("main::Exit\n");
     return 0;
 }
