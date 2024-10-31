@@ -1,5 +1,6 @@
-#include <iostream>
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
+#include <SDL2/SDL_render.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -67,14 +68,14 @@ int main(int argc, char *argv[]) {
 
     // Get the user's home dir
     const char* homeDir = getenv("HOME");
-    if(!homeDir) {
+    if (!homeDir) {
         perror("main::Error getting home directory");
         return 1;
     }
     printf("\nmain::homeDir: %s\n\n", homeDir);
 
     // Get the full file path
-    char confFilePath[1024]; // is this the same as char* confFilePath = (char*)malloc(1024) ??
+    char confFilePath[1024];
     snprintf(confFilePath, sizeof(confFilePath), "%s%s", homeDir, confFileName);
 
     // Get config file vars
@@ -90,7 +91,7 @@ int main(int argc, char *argv[]) {
 
     char buffer[1024];
 
-    // for every line from file into buffer
+    // for every line from configuration file into buffer
     while(fgets(buffer, sizeof(buffer), file)) {
 
         // if length of buffer > 1 and buffer has a '\n', allocate a '\0' at the end
@@ -134,41 +135,84 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    size_t matchingLinesCount;
-
-    printf("\nmain::Initializing SDL\n");
-    SDL_Init(0);
-
-    SDL_Window* window = SDL_CreateWindow("SDL Window",
-                                          SDL_WINDOWPOS_CENTERED,
-                                          SDL_WINDOWPOS_CENTERED,
-                                          680, 480,
-                                          SDL_WINDOW_BORDERLESS);
-    if(!window)
-    {
-        printf("main::Failed to create window\n");
-        return -1;
-    }
-
-    SDL_Surface* window_surface = SDL_GetWindowSurface(window);
-
-    if(!window_surface)
-    {
-        printf("main::Failed to get the surface from the window\n");
-        return -1;
-    }
-
-    SDL_UpdateWindowSurface(window);
-
+    char** todos;
     printf("\nmain::Extracted paths:\n");
+    size_t matchingLinesCount;
     for (size_t i = 0; i < numExtractedPaths; ++i) {
         printf("%zu: %s\n", i + 1, extractedPaths[i]);
-        readWaits(extractedPaths[i], &matchingLinesCount);
+        todos = readWaits(extractedPaths[i], &matchingLinesCount);
     }
     printf("\nmain::Matches found: %lu\n", matchingLinesCount);
 
+    // SDL /////////////////////////////////////////////////////////
+    printf("\nmain::Initializing SDL_ttf\n");
+    if (TTF_Init() == -1) {
+        printf("SDL_ttf could not initialize! TTF_Error: %s\n", TTF_GetError());
+        SDL_Quit();
+        return 1;
+    }
+
+    printf("\nmain::Loading font\n");
+    TTF_Font* font = TTF_OpenFont("/usr/share/fonts/TTF/IosevkaNerdFont-Regular.ttf", 24);
+    if (!font) {
+        printf("Failed to load font! TTF_Error: %s\n", TTF_GetError());
+        TTF_Quit();
+        SDL_Quit();
+        return 1;
+    }
+
+    printf("\nmain::Initializing SDL\n");
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+        printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
+        return -1;
+    }
+
+    SDL_Window* window = SDL_CreateWindow("SDL Window", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+                                          680, 480, 0); // SDL_WINDOW_BORDERLESS
+    if (!window)
+    {
+        printf("Failed to create window\n");
+        return -1;
+    }
+
+    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, 0);
+    if (!renderer) {
+        printf("Renderer could not be created! SDL_Error: %s\n", SDL_GetError());
+        return -1;
+    }
+
+    SDL_Color textColor = {255, 255, 255, 255};
+    SDL_Surface* textSurface = TTF_RenderText_Solid(font, *todos, textColor);
+    if (!textSurface) {
+        printf("Unable to render text! TTF_Error: %s\n", SDL_GetError());
+    }
+
+    SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+    SDL_FreeSurface(textSurface); // No longer needed
+
+    // Clear Renderer
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black bg
+    SDL_RenderClear(renderer);
+
+    SDL_Rect textRect = {100, 100, textSurface->w, textSurface->h};
+    SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
+    printf("\nmain::Rendering Display\n");
+    SDL_RenderPresent(renderer); // Update screen
+
     SDL_Delay(5000);
 
+    printf("\nmain::Destroying Texture\n");
+    SDL_DestroyTexture(textTexture);
+    printf("\nmain::Destroying Renderer\n");
+    SDL_DestroyRenderer(renderer);
+    printf("\nmain::Destroying Window\n");
+    SDL_DestroyWindow(window);
+
+    printf("\nmain::Closing SDL_ttf\n");
+    TTF_CloseFont(font);
+    TTF_Quit();
+
+    printf("\nmain::Quitting SDL\n");
     SDL_Quit();
 
     // free the allocated memory (the array if char*)
