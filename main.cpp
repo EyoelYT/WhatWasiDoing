@@ -28,7 +28,7 @@ char** readWaits(char* path, size_t* outLineCount) {
     while (line != NULL) {
         if (strstr(line, "WAIT")) {
             matchingLines[count++] = strdup(line);
-            printf("readWaits::MATCHING WAITS:\n%s\n", line);
+            printf("\nreadWaits::MATCHING WAITS:\n%s\n", line);
         }
         line = strtok(NULL, "\n");
     }
@@ -139,12 +139,35 @@ int main(int argc, char *argv[]) {
     printf("\nmain::Initializing SDL\n");
     SDL_Init(0);
 
+    SDL_Window* window = SDL_CreateWindow("SDL Window",
+                                          SDL_WINDOWPOS_CENTERED,
+                                          SDL_WINDOWPOS_CENTERED,
+                                          680, 480,
+                                          SDL_WINDOW_BORDERLESS);
+    if(!window)
+    {
+        printf("main::Failed to create window\n");
+        return -1;
+    }
+
+    SDL_Surface* window_surface = SDL_GetWindowSurface(window);
+
+    if(!window_surface)
+    {
+        printf("main::Failed to get the surface from the window\n");
+        return -1;
+    }
+
+    SDL_UpdateWindowSurface(window);
+
     printf("\nmain::Extracted paths:\n");
     for (size_t i = 0; i < numExtractedPaths; ++i) {
         printf("%zu: %s\n", i + 1, extractedPaths[i]);
         readWaits(extractedPaths[i], &matchingLinesCount);
     }
-    printf("main::Matches found: %lu\n", matchingLinesCount);
+    printf("\nmain::Matches found: %lu\n", matchingLinesCount);
+
+    SDL_Delay(5000);
 
     SDL_Quit();
 
