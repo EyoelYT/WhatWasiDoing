@@ -34,7 +34,7 @@ char** readWaits(char* path, size_t* outLineCount) {
         line = strtok(NULL, "\n");
     }
 
-    *outLineCount = count;
+    *outLineCount = count + 1;
     return matchingLines;
 
     SDL_free(fileContent);
@@ -137,9 +137,9 @@ int main(int argc, char *argv[]) {
 
     char** todos;
     printf("\nmain::Extracted paths:\n");
-    size_t matchingLinesCount;
+    size_t matchingLinesCount = 0;
     for (size_t i = 0; i < numExtractedPaths; ++i) {
-        printf("%zu: %s\n", i + 1, extractedPaths[i]);
+        printf("\033[33m%zu: %s\033[0m\n", i + 1, extractedPaths[i]);
         todos = readWaits(extractedPaths[i], &matchingLinesCount);
     }
     printf("\nmain::Matches found: %lu\n", matchingLinesCount);
@@ -192,14 +192,14 @@ int main(int argc, char *argv[]) {
 
     // Clear Renderer
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black bg
-    SDL_RenderClear(renderer);
+    SDL_RenderClear(renderer); // Clear the renderer buffer
 
-    SDL_Rect textRect = {100, 100, textSurface->w, textSurface->h};
+    SDL_Rect textRect = {0, 0, textSurface->w, textSurface->h};
     SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
     printf("\nmain::Rendering Display\n");
     SDL_RenderPresent(renderer); // Update screen
 
-    SDL_Delay(5000);
+    SDL_Delay(3000);
 
     printf("\nmain::Destroying Texture\n");
     SDL_DestroyTexture(textTexture);
@@ -219,6 +219,6 @@ int main(int argc, char *argv[]) {
     for (size_t i = 0; i < numLines; ++i) {
         free(lines[i]);
     }
-    printf("main::Exit\n");
+    printf("\nmain::Exit\n");
     return 0;
 }
