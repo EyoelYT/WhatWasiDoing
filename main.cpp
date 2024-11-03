@@ -1,6 +1,8 @@
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_events.h>
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_render.h>
+#include <SDL2/SDL_video.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -181,37 +183,48 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    SDL_Color textColor = {255, 255, 255, 255};
-    SDL_Surface* textSurface = TTF_RenderText_Solid(font, *todos, textColor);
-    if (!textSurface) {
-        printf("Unable to render text! TTF_Error: %s\n", SDL_GetError());
+    bool running = true;
+    while (running) {
+        SDL_Event event;
+        while (SDL_PollEvent(&event)) {
+            switch (event.type) {
+            case SDL_QUIT:
+                running = false;
+                break;
+            case SDL_WINDOWEVENT:
+                if (event.window.event == SDL_WINDOWEVENT_CLOSE) {
+                    running = false;
+                }
+                break;
+            }
+        }
+
+        SDL_Color textColor = {255, 255, 255, 255};
+        SDL_Surface* textSurface = TTF_RenderText_Solid(font, *todos, textColor);
+        if (!textSurface) {
+            printf("Unable to render text! TTF_Error: %s\n", SDL_GetError());
+        }
+
+        SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+        SDL_FreeSurface(textSurface); // No longer needed
+
+        // Clear Renderer
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black bg
+        SDL_RenderClear(renderer);                      // Clear the renderer buffer
+
+        SDL_Rect textRect = {0, 0, textSurface->w, textSurface->h};
+        SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
+        SDL_RenderPresent(renderer); // Update screen
+        SDL_DestroyTexture(textTexture);
     }
 
-    SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
-    SDL_FreeSurface(textSurface); // No longer needed
-
-    // Clear Renderer
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black bg
-    SDL_RenderClear(renderer); // Clear the renderer buffer
-
-    SDL_Rect textRect = {0, 0, textSurface->w, textSurface->h};
-    SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
-    printf("\nmain::Rendering Display\n");
-    SDL_RenderPresent(renderer); // Update screen
-
-    SDL_Delay(3000);
-
-    printf("\nmain::Destroying Texture\n");
-    SDL_DestroyTexture(textTexture);
     printf("\nmain::Destroying Renderer\n");
     SDL_DestroyRenderer(renderer);
     printf("\nmain::Destroying Window\n");
     SDL_DestroyWindow(window);
-
     printf("\nmain::Closing SDL_ttf\n");
     TTF_CloseFont(font);
     TTF_Quit();
-
     printf("\nmain::Quitting SDL\n");
     SDL_Quit();
 
