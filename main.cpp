@@ -14,32 +14,29 @@ const char* getHomeDir() {
     return getenv("HOME");
 }
 
-char** readWaits(char* path, size_t* outLineCount) {
+void readWaits(char* path, size_t* outLineCount, char** matchingLines, size_t* currLineInML) {
     void* fileContent = SDL_LoadFile(path, NULL);
 
     if (!fileContent) {
         printf("readWaits::fileContent: %s\n", fileContent);
         printf("readWaits::Error loading file: %s\n", SDL_GetError());
-        return NULL;
+        return;
     }
 
-    char** matchingLines = (char**)malloc(100 * sizeof(char*));
-    size_t count = 0;
     char* line = strtok((char*)fileContent, "\n");
 
     // Search for "WAIT" in each line
     while (line != NULL) {
         if (strstr(line, "WAIT")) {
-            matchingLines[count++] = strdup(line);
+            matchingLines[*currLineInML] = strdup(line);
+            (*currLineInML)++;
             printf("\nreadWaits::MATCHING WAITS:\n%s\n", line);
         }
         line = strtok(NULL, "\n");
     }
-
-    *outLineCount = count + 1;
-    return matchingLines;
-
     SDL_free(fileContent);
+
+    *outLineCount = *currLineInML;
 }
 
 char* extractPath(const char* line) {
@@ -137,15 +134,20 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    char** todos;
+    char** matchingLines = (char**)malloc(100 * sizeof(char*));
+
     printf("\nmain::Extracted paths:\n");
     size_t matchingLinesCount = 0;
+    size_t currLineInML = 0;
     for (size_t i = 0; i < numExtractedPaths; ++i) {
         printf("\033[33m%zu: %s\033[0m\n", i + 1, extractedPaths[i]);
-        todos = readWaits(extractedPaths[i], &matchingLinesCount);
+        readWaits(extractedPaths[i], &matchingLinesCount, matchingLines, &currLineInML);
     }
     printf("\nmain::Matches found: %lu\n", matchingLinesCount);
 
+    for (size_t i = 0; i < matchingLinesCount; ++i) {
+        printf("main::PRINT MATCHING LINES: %s\n", matchingLines[i]);
+    }
     // SDL /////////////////////////////////////////////////////////
     printf("\nmain::Initializing SDL_ttf\n");
     if (TTF_Init() == -1) {
@@ -199,23 +201,36 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        SDL_Color textColor = {255, 255, 255, 255};
-        SDL_Surface* textSurface = TTF_RenderText_Solid(font, *todos, textColor);
-        if (!textSurface) {
-            printf("Unable to render text! TTF_Error: %s\n", SDL_GetError());
-        }
-
-        SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
-        SDL_FreeSurface(textSurface); // No longer needed
-
-        // Clear Renderer
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black bg
         SDL_RenderClear(renderer);                      // Clear the renderer buffer
 
-        SDL_Rect textRect = {0, 0, textSurface->w, textSurface->h};
-        SDL_RenderCopy(renderer, textTexture, NULL, &textRect);
+        int yOffset = 0;
+        int i = 0;
+        for (size_t i = 0; i < matchingLinesCount; i++) {
+
+            SDL_Color textColor = {255, 255, 255, 255};
+            SDL_Surface* textSurface = TTF_RenderText_Solid(font, matchingLines[i], textColor);
+            if (!textSurface) {
+                fprintf(stderr, "Unable to render text! TTF_Error: %s\n", TTF_GetError());
+                continue;
+            }
+
+            SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
+            SDL_FreeSurface(textSurface); // No longer needed
+            if (!textTexture) {
+                fprintf(stderr, "Failed to create texture! SDL_Error: %s\n", SDL_GetError());
+                continue;
+            }
+
+            SDL_Rect srcRect = {0, 0, textSurface->w, textSurface->h};
+            SDL_Rect dstRect = {0, yOffset, textSurface->w, textSurface->h};
+            SDL_RenderCopy(renderer, textTexture, &srcRect, &dstRect);
+            SDL_DestroyTexture(textTexture);
+
+            yOffset += textSurface->h;
+        }
         SDL_RenderPresent(renderer); // Update screen
-        SDL_DestroyTexture(textTexture);
+
     }
 
     printf("\nmain::Destroying Renderer\n");
@@ -232,6 +247,7 @@ int main(int argc, char *argv[]) {
     for (size_t i = 0; i < numLines; ++i) {
         free(lines[i]);
     }
+    free(matchingLines);
     printf("\nmain::Exit\n");
     return 0;
 }
