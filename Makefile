@@ -4,21 +4,24 @@
 # @file
 # @version 0.1
 
-## SHELL COMMAND = gcc main.cpp `sdl2-config --cflags --libs`
+## SHELL COMMAND = g++ main.cpp `sdl2-config --cflags --libs`
 
 # Compiler Settings
-CC := gcc
-CFLAGS := $(shell sdl2-config --cflags)
+CXX := g++
+CXXFLAGS := -g -O0 -Wall -Wextra
+SDL_CFLAGS := $(shell sdl2-config --cflags)
 LIBS := $(shell sdl2-config --libs) -lSDL2_ttf
 
 # Source file and output executable
 SRC := main.cpp
 EXECUTABLE := froomf
 
+.PHONY: all clean
+
 all: $(EXECUTABLE)
 
 $(EXECUTABLE): $(SRC)
-	$(CC) $(CFLAGS) -o $@ $< $(LIBS)
+	$(CXX) $(CXXFLAGS) $(SDL_CFLAGS) -o $@ $< $(LIBS)
 
 clean:
 	rm -f $(EXECUTABLE)
