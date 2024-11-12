@@ -172,10 +172,9 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    SDL_Window* window = SDL_CreateWindow("SDL Window", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                                          680, 480, 0); // SDL_WINDOW_BORDERLESS
-    if (!window)
-    {
+    SDL_Window* window = SDL_CreateWindow("SDL Window", 100, 0, 1500, 100,
+                                          SDL_WINDOW_RESIZABLE); // SDL_WINDOW_BORDERLESS
+    if (!window) {
         printf("Failed to create window\n");
         return -1;
     }
