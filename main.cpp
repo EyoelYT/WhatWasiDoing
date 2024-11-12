@@ -108,10 +108,30 @@ int readConfigFile(const char* confFilePath, const int MAX_LINES_IN_FILE, char**
     return numLines;
 }
 
+void getTargetPaths(char* extractedPaths[], int* numExtractedPaths, int numLinesInConfigFile,
+                    char* lines[]) {
+    for (int i = 0; i < numLinesInConfigFile; ++i) {
+        char* path = extractPath(lines[i]);
+        if (path) {
+            extractedPaths[(*numExtractedPaths)++] = path;
+        }
+    }
+}
+
 int main(int argc, char *argv[]) {
     const char* confFileName = "/.currTasks.conf";
     const int MAX_LINES_IN_FILE = 100;
+
     char* lines[MAX_LINES_IN_FILE]; // array of addresses to beginnings of chars
+
+    char confFilePath[1024];
+    int numLinesInConfigFile;
+
+    char* extractedPaths[MAX_LINES_IN_FILE];
+    int numExtractedPaths;
+
+    char** matchingLines;
+    int matchingLinesCount;
 
     // Get the user's home dir
     const char* homeDir = getenv("HOME");
@@ -122,26 +142,17 @@ int main(int argc, char *argv[]) {
     printf("\nmain::homeDir: %s\n\n", homeDir);
 
     // Get the full file path (join the strings)
-    char confFilePath[1024];
     snprintf(confFilePath, sizeof(confFilePath), "%s%s", homeDir, confFileName);
 
-    int numLinesInConfigFile = readConfigFile(confFilePath, MAX_LINES_IN_FILE, lines);
+    numLinesInConfigFile = readConfigFile(confFilePath, MAX_LINES_IN_FILE, lines);
 
     // extract the path strings from all the lines
-    char* extractedPaths[MAX_LINES_IN_FILE];
-    int numExtractedPaths = 0;
+    numExtractedPaths = 0;
+    getTargetPaths(extractedPaths, &numExtractedPaths, numLinesInConfigFile, lines);
 
-    for (int i = 0; i < numLinesInConfigFile; ++i) {
-        char* path = extractPath(lines[i]);
-        if (path) {
-            extractedPaths[numExtractedPaths++] = path;
-        }
-    }
-
-    char** matchingLines = (char**)malloc(100 * sizeof(char*));
-
+    matchingLines = (char**)malloc(100 * sizeof(char*));
     printf("\nmain::Extracted paths:\n");
-    int matchingLinesCount = 0;
+    matchingLinesCount = 0;
     for (int i = 0; i < numExtractedPaths; ++i) {
         printf("\033[33m%d: %s\033[0m\n", i + 1, extractedPaths[i]);
         readWaits(extractedPaths[i], matchingLines, &matchingLinesCount);
