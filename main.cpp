@@ -15,7 +15,7 @@ const char* getHomeDir() {
     return getenv("HOME");
 }
 
-void readWaits(char* path, size_t* outLineCount, char** matchingLines, size_t* currLineInML) {
+void readWaits(char* path, char** matchingLines, size_t* currLineInML) {
     void* fileContent = SDL_LoadFile(path, NULL);
 
     if (!fileContent) {
@@ -36,8 +36,6 @@ void readWaits(char* path, size_t* outLineCount, char** matchingLines, size_t* c
         line = strtok(NULL, "\n");
     }
     SDL_free(fileContent);
-
-    *outLineCount = *currLineInML;
 }
 
 char* extractPath(const char* line) {
@@ -139,10 +137,9 @@ int main(int argc, char *argv[]) {
 
     printf("\nmain::Extracted paths:\n");
     size_t matchingLinesCount = 0;
-    size_t currLineInML = 0;
     for (size_t i = 0; i < numExtractedPaths; ++i) {
         printf("\033[33m%zu: %s\033[0m\n", i + 1, extractedPaths[i]);
-        readWaits(extractedPaths[i], &matchingLinesCount, matchingLines, &currLineInML);
+        readWaits(extractedPaths[i], matchingLines, &matchingLinesCount);
     }
     printf("\nmain::Matches found: %lu\n", matchingLinesCount);
 
