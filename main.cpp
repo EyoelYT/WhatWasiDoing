@@ -15,7 +15,7 @@ const char* getHomeDir() {
     return getenv("HOME");
 }
 
-void readWaits(char* path, char** matchingLines, int* currLineInML) {
+void readWaitsFromTargets(char* path, char* matchingLines[], int* currLineInML) {
     void* fileContent = SDL_LoadFile(path, NULL);
 
     if (!fileContent) {
@@ -60,7 +60,7 @@ char* extractPath(const char* line) {
     return path;
 }
 
-int readConfigFile(const char* confFilePath, const int MAX_LINES_IN_FILE, char** lines) {
+int readConfigFile(const char* confFilePath, const int MAX_LINES_IN_FILE, char* lines[]) {
     // Get config file vars
     FILE* file = fopen(confFilePath, "r");
     if (!file) {
@@ -118,6 +118,20 @@ void getTargetPaths(char* extractedPaths[], int* numExtractedPaths, int numLines
     }
 }
 
+void getMatchingLines(char* extractedPaths[], int numExtractedPaths,
+                      char* matchingLines[], int* matchingLinesCount) {
+        printf("\nmain::Extracted paths:\n");
+        for (int i = 0; i < numExtractedPaths; ++i) {
+            printf("\033[33m%d: %s\033[0m\n", i + 1, extractedPaths[i]);
+            readWaitsFromTargets(extractedPaths[i], matchingLines, matchingLinesCount);
+        }
+        printf("\nmain::Matches found: %d\n", *matchingLinesCount);
+
+        for (int i = 0; i < *matchingLinesCount; ++i) {
+            printf("main::PRINT MATCHING LINES: %s\n", matchingLines[i]);
+        }
+}
+
 int main(int argc, char *argv[]) {
     const char* confFileName = "/.currTasks.conf";
     const int MAX_LINES_IN_FILE = 100;
@@ -139,11 +153,8 @@ int main(int argc, char *argv[]) {
         perror("main::Error getting home directory");
         return 1;
     }
-    printf("\nmain::homeDir: %s\n\n", homeDir);
-
-    // Get the full file path (join the strings)
+    // Get the full file path to the config file (join the strings)
     snprintf(confFilePath, sizeof(confFilePath), "%s%s", homeDir, confFileName);
-
     numLinesInConfigFile = readConfigFile(confFilePath, MAX_LINES_IN_FILE, lines);
 
     // extract the path strings from all the lines
@@ -151,17 +162,9 @@ int main(int argc, char *argv[]) {
     getTargetPaths(extractedPaths, &numExtractedPaths, numLinesInConfigFile, lines);
 
     matchingLines = (char**)malloc(100 * sizeof(char*));
-    printf("\nmain::Extracted paths:\n");
     matchingLinesCount = 0;
-    for (int i = 0; i < numExtractedPaths; ++i) {
-        printf("\033[33m%d: %s\033[0m\n", i + 1, extractedPaths[i]);
-        readWaits(extractedPaths[i], matchingLines, &matchingLinesCount);
-    }
-    printf("\nmain::Matches found: %d\n", matchingLinesCount);
+    getMatchingLines(extractedPaths, numExtractedPaths, matchingLines, &matchingLinesCount);
 
-    for (int i = 0; i < matchingLinesCount; ++i) {
-        printf("main::PRINT MATCHING LINES: %s\n", matchingLines[i]);
-    }
     // SDL /////////////////////////////////////////////////////////
     printf("\nmain::Initializing SDL_ttf\n");
     if (TTF_Init() == -1) {
