@@ -15,7 +15,7 @@ const char* getHomeDir() {
     return getenv("HOME");
 }
 
-void readWaits(char* path, char** matchingLines, size_t* currLineInML) {
+void readWaits(char* path, char** matchingLines, int* currLineInML) {
     void* fileContent = SDL_LoadFile(path, NULL);
 
     if (!fileContent) {
@@ -48,7 +48,7 @@ char* extractPath(const char* line) {
         return NULL; // no closing double quotes found
     }
 
-    size_t len = end - start - 1;
+    int len = end - start - 1;
     char* path = (char*)malloc(len + 1);
     if (!path) {
         perror("extractPath::Memory allocation error");
@@ -60,22 +60,7 @@ char* extractPath(const char* line) {
     return path;
 }
 
-int main(int argc, char *argv[]) {
-    const char* confFileName = "/.currTasks.conf";
-    const int MAX_LINES_IN_FILE = 100;
-
-    // Get the user's home dir
-    const char* homeDir = getenv("HOME");
-    if (!homeDir) {
-        perror("main::Error getting home directory");
-        return 1;
-    }
-    printf("\nmain::homeDir: %s\n\n", homeDir);
-
-    // Get the full file path
-    char confFilePath[1024];
-    snprintf(confFilePath, sizeof(confFilePath), "%s%s", homeDir, confFileName);
-
+int readConfigFile(const char* confFilePath, const int MAX_LINES_IN_FILE, char** lines) {
     // Get config file vars
     FILE* file = fopen(confFilePath, "r");
     if (!file) {
@@ -84,8 +69,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    char* lines[MAX_LINES_IN_FILE]; // array of addresses to beginnings of chars
-    size_t numLines = 0;
+    int numLines = 0;
 
     char buffer[1024];
 
@@ -113,20 +97,41 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    fclose(file);
-
     // Show the lines that are read
     printf("main::Lines read from %s:\n", confFilePath);
-    for (size_t i = 0; i < numLines; ++i) {
-        printf("%zu: %s\n", i + 1, lines[i]);
+    for (int i = 0; i < numLines; ++i) {
+        printf("%d: %s\n", i + 1, lines[i]);
     }
 
-    /* lines is an array of addresses, each that point to a char (which is a char string) */
+    fclose(file);
+
+    return numLines;
+}
+
+int main(int argc, char *argv[]) {
+    const char* confFileName = "/.currTasks.conf";
+    const int MAX_LINES_IN_FILE = 100;
+    char* lines[MAX_LINES_IN_FILE]; // array of addresses to beginnings of chars
+
+    // Get the user's home dir
+    const char* homeDir = getenv("HOME");
+    if (!homeDir) {
+        perror("main::Error getting home directory");
+        return 1;
+    }
+    printf("\nmain::homeDir: %s\n\n", homeDir);
+
+    // Get the full file path (join the strings)
+    char confFilePath[1024];
+    snprintf(confFilePath, sizeof(confFilePath), "%s%s", homeDir, confFileName);
+
+    int numLinesInConfigFile = readConfigFile(confFilePath, MAX_LINES_IN_FILE, lines);
+
     // extract the path strings from all the lines
     char* extractedPaths[MAX_LINES_IN_FILE];
-    size_t numExtractedPaths = 0;
+    int numExtractedPaths = 0;
 
-    for (size_t i = 0; i < numLines; ++i) {
+    for (int i = 0; i < numLinesInConfigFile; ++i) {
         char* path = extractPath(lines[i]);
         if (path) {
             extractedPaths[numExtractedPaths++] = path;
@@ -136,14 +141,14 @@ int main(int argc, char *argv[]) {
     char** matchingLines = (char**)malloc(100 * sizeof(char*));
 
     printf("\nmain::Extracted paths:\n");
-    size_t matchingLinesCount = 0;
-    for (size_t i = 0; i < numExtractedPaths; ++i) {
-        printf("\033[33m%zu: %s\033[0m\n", i + 1, extractedPaths[i]);
+    int matchingLinesCount = 0;
+    for (int i = 0; i < numExtractedPaths; ++i) {
+        printf("\033[33m%d: %s\033[0m\n", i + 1, extractedPaths[i]);
         readWaits(extractedPaths[i], matchingLines, &matchingLinesCount);
     }
-    printf("\nmain::Matches found: %lu\n", matchingLinesCount);
+    printf("\nmain::Matches found: %d\n", matchingLinesCount);
 
-    for (size_t i = 0; i < matchingLinesCount; ++i) {
+    for (int i = 0; i < matchingLinesCount; ++i) {
         printf("main::PRINT MATCHING LINES: %s\n", matchingLines[i]);
     }
     // SDL /////////////////////////////////////////////////////////
@@ -202,7 +207,7 @@ int main(int argc, char *argv[]) {
         SDL_RenderClear(renderer);                      // Clear the renderer buffer
 
         int yOffset = 0;
-        for (size_t i = 0; i < matchingLinesCount; i++) {
+        for (int i = 0; i < matchingLinesCount; i++) {
 
             SDL_Color textColor = {255, 255, 255, 255};
             SDL_Surface* textSurface = TTF_RenderText_Solid(font, matchingLines[i], textColor);
@@ -241,7 +246,7 @@ int main(int argc, char *argv[]) {
     SDL_Quit();
 
     // free the allocated memory (the array if char*)
-    for (size_t i = 0; i < numLines; ++i) {
+    for (int i = 0; i < numLinesInConfigFile; ++i) {
         free(lines[i]);
     }
     free(matchingLines);
