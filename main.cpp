@@ -118,7 +118,7 @@ void getTargetPaths(char* extractedPaths[], int* numExtractedPaths, int numLines
     }
 }
 
-void getMatchingLines(char* extractedPaths[], int numExtractedPaths,
+void getMatchingLinesFromTargets(char* extractedPaths[], int numExtractedPaths,
                       char* matchingLines[], int* matchingLinesCount) {
         printf("\nmain::Extracted paths:\n");
         for (int i = 0; i < numExtractedPaths; ++i) {
@@ -163,7 +163,7 @@ int main(int argc, char *argv[]) {
 
     matchingLines = (char**)malloc(100 * sizeof(char*));
     matchingLinesCount = 0;
-    getMatchingLines(extractedPaths, numExtractedPaths, matchingLines, &matchingLinesCount);
+    getMatchingLinesFromTargets(extractedPaths, numExtractedPaths, matchingLines, &matchingLinesCount);
 
     // SDL /////////////////////////////////////////////////////////
     printf("\nmain::Initializing SDL_ttf\n");
@@ -247,6 +247,10 @@ int main(int argc, char *argv[]) {
         SDL_RenderPresent(renderer); // Update screen
 
         SDL_Delay(1000);
+
+        matchingLinesCount = 0;
+        getMatchingLinesFromTargets(extractedPaths, numExtractedPaths, matchingLines,
+                                    &matchingLinesCount);
     }
 
     printf("\nmain::Destroying Renderer\n");
