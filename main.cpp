@@ -1,5 +1,6 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_events.h>
+#include <SDL2/SDL_timer.h>
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_video.h>
@@ -18,7 +19,7 @@ void readWaits(char* path, size_t* outLineCount, char** matchingLines, size_t* c
     void* fileContent = SDL_LoadFile(path, NULL);
 
     if (!fileContent) {
-        printf("readWaits::fileContent: %s\n", fileContent);
+        printf("readWaits::fileContent: %s\n", (char*)fileContent);
         printf("readWaits::Error loading file: %s\n", SDL_GetError());
         return;
     }
@@ -205,7 +206,6 @@ int main(int argc, char *argv[]) {
         SDL_RenderClear(renderer);                      // Clear the renderer buffer
 
         int yOffset = 0;
-        int i = 0;
         for (size_t i = 0; i < matchingLinesCount; i++) {
 
             SDL_Color textColor = {255, 255, 255, 255};
@@ -231,6 +231,7 @@ int main(int argc, char *argv[]) {
         }
         SDL_RenderPresent(renderer); // Update screen
 
+        SDL_Delay(1000);
     }
 
     printf("\nmain::Destroying Renderer\n");
