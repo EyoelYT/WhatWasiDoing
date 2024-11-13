@@ -1,19 +1,15 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_events.h>
+#include <SDL2/SDL_render.h>
 #include <SDL2/SDL_timer.h>
 #include <SDL2/SDL_ttf.h>
-#include <SDL2/SDL_render.h>
 #include <SDL2/SDL_video.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-
-
-const char* getHomeDir() {
-    return getenv("HOME");
-}
+const char* getHomeDir() { return getenv("HOME"); }
 
 void readWaitsFromTargets(char* path, char* matchingLines[], int* currLineInML) {
     void* fileContent = SDL_LoadFile(path, NULL);
@@ -74,7 +70,7 @@ int readConfigFile(const char* confFilePath, const int MAX_LINES_IN_FILE, char* 
     char buffer[1024];
 
     // for every line from configuration file into buffer
-    while(fgets(buffer, sizeof(buffer), file)) {
+    while (fgets(buffer, sizeof(buffer), file)) {
 
         // if length of buffer > 1 and buffer has a '\n', allocate a '\0' at the end
         size_t len = strlen(buffer);
@@ -85,9 +81,9 @@ int readConfigFile(const char* confFilePath, const int MAX_LINES_IN_FILE, char* 
         // put contents of buffer into new memory, make lines[*char] point to start of buffer
         lines[numLines] = strdup(buffer);
         if (!lines[numLines]) {
-           perror("main::Memory allocation error");
-           fclose(file);
-           return 1;
+            perror("main::Memory allocation error");
+            fclose(file);
+            return 1;
         }
 
         numLines++;
@@ -119,20 +115,20 @@ void getTargetPaths(char* extractedPaths[], int* numExtractedPaths, int numLines
 }
 
 void getMatchingLinesFromTargets(char* extractedPaths[], int numExtractedPaths,
-                      char* matchingLines[], int* matchingLinesCount) {
-        printf("\nmain::Extracted paths:\n");
-        for (int i = 0; i < numExtractedPaths; ++i) {
-            printf("\033[33m%d: %s\033[0m\n", i + 1, extractedPaths[i]);
-            readWaitsFromTargets(extractedPaths[i], matchingLines, matchingLinesCount);
-        }
-        printf("\nmain::Matches found: %d\n", *matchingLinesCount);
+                                 char* matchingLines[], int* matchingLinesCount) {
+    printf("\nmain::Extracted paths:\n");
+    for (int i = 0; i < numExtractedPaths; ++i) {
+        printf("\033[33m%d: %s\033[0m\n", i + 1, extractedPaths[i]);
+        readWaitsFromTargets(extractedPaths[i], matchingLines, matchingLinesCount);
+    }
+    printf("\nmain::Matches found: %d\n", *matchingLinesCount);
 
-        for (int i = 0; i < *matchingLinesCount; ++i) {
-            printf("main::PRINT MATCHING LINES: %s\n", matchingLines[i]);
-        }
+    for (int i = 0; i < *matchingLinesCount; ++i) {
+        printf("main::PRINT MATCHING LINES: %s\n", matchingLines[i]);
+    }
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     const char* confFileName = "/.currTasks.conf";
     const int MAX_LINES_IN_FILE = 100;
 
@@ -163,7 +159,8 @@ int main(int argc, char *argv[]) {
 
     matchingLines = (char**)malloc(100 * sizeof(char*));
     matchingLinesCount = 0;
-    getMatchingLinesFromTargets(extractedPaths, numExtractedPaths, matchingLines, &matchingLinesCount);
+    getMatchingLinesFromTargets(extractedPaths, numExtractedPaths, matchingLines,
+                                &matchingLinesCount);
 
     // SDL /////////////////////////////////////////////////////////
     printf("\nmain::Initializing SDL_ttf\n");
@@ -195,7 +192,7 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, 0);
+    SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
     if (!renderer) {
         printf("Renderer could not be created! SDL_Error: %s\n", SDL_GetError());
         return -1;
