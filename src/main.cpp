@@ -128,7 +128,7 @@ void getMatchingLinesFromTargets(char* extractedPaths[], int numExtractedPaths,
     }
 }
 
-int main(int argc, char* argv[]) {
+int main(void) {
     const char* confFileName = "/.currTasks.conf";
     const int MAX_LINES_IN_FILE = 100;
 
