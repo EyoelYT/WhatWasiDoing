@@ -226,7 +226,16 @@ int main(int argc, char* argv[]) {
         for (int i = 0; i < matchingLinesCount; i++) {
 
             SDL_Color textColor = {255, 255, 255, 255};
-            SDL_Surface* textSurface = TTF_RenderText_Solid(font, matchingLines[i], textColor);
+            SDL_Surface* textSurface;
+            if (i == 0) {
+                char firstLineText[256];
+                const char* prefix = "Current Task: ";
+                snprintf(firstLineText, sizeof(firstLineText), "%s%s", prefix, matchingLines[0]);
+                textSurface = TTF_RenderText_Solid(font, firstLineText, textColor);
+            }
+            else {
+                textSurface = TTF_RenderText_Solid(font, matchingLines[i], textColor);
+            }
             if (!textSurface) {
                 fprintf(stderr, "Unable to render text! TTF_Error: %s\n", TTF_GetError());
                 continue;
