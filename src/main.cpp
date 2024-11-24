@@ -128,7 +128,7 @@ void getMatchingLinesFromTargets(char* extractedPaths[], int numExtractedPaths,
     }
 }
 
-int main(void) {
+int main(int argc, char* argv[]) {
     const char* confFileName = "/.currTasks.conf";
     const int MAX_LINES_IN_FILE = 100;
 
@@ -171,7 +171,12 @@ int main(void) {
     }
 
     printf("\nmain::Loading font\n");
-    TTF_Font* font = TTF_OpenFont("/usr/share/fonts/TTF/IosevkaNerdFont-Regular.ttf", 24);
+    #ifdef _WIN32
+    const char* fontPath = "C:\\Users\\Eyu\\Projects\\probe\\nerd-fonts\\patched-fonts\\Iosevka\\IosevkaNerdFont-Regular.ttf";
+    #else
+    const char* fontPath = "/usr/share/fonts/TTF/IosevkaNerdFont-Regular.ttf";
+    #endif
+    TTF_Font* font = TTF_OpenFont(fontPath, 24);
     if (!font) {
         printf("Failed to load font! TTF_Error: %s\n", TTF_GetError());
         TTF_Quit();
