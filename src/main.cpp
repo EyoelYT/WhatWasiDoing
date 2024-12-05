@@ -9,6 +9,13 @@
 #include <string.h>
 #include <unistd.h>
 
+struct {
+    Uint8 r = 50;
+    Uint8 g = 150;
+    Uint8 b = 50;
+    Uint8 a = 255;
+} BgColor;
+
 const char* getHomeDir() { return getenv("HOME"); }
 
 void readWaitsFromTargets(char* path, char* matchingLines[], int* currLineInML) {
@@ -176,7 +183,8 @@ int main(int argc, char* argv[]) {
     #else
     const char* fontPath = "/usr/share/fonts/TTF/IosevkaNerdFont-Regular.ttf";
     #endif
-    TTF_Font* font = TTF_OpenFont(fontPath, 24);
+    int fontSize = 36;
+    TTF_Font* font = TTF_OpenFont(fontPath, fontSize);
     if (!font) {
         printf("Failed to load font! TTF_Error: %s\n", TTF_GetError());
         TTF_Quit();
@@ -219,7 +227,7 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black bg
+        SDL_SetRenderDrawColor(renderer, BgColor.r, BgColor.g, BgColor.b, BgColor.a);
         SDL_RenderClear(renderer);                      // Clear the renderer buffer
 
         int yOffset = 0;
