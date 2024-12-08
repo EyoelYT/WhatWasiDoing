@@ -41,6 +41,27 @@ void readWaitsFromTargets(char* path, char* matchingLines[], int* currLineInML) 
     SDL_free(fileContent);
 }
 
+void trimKeywordPrefix(char* line, char* keyword) {
+    if (!line) return;
+
+    char* pline = line;
+
+    if (*pline == '*') {
+        while (*pline == '*') {
+            pline++;
+        }
+        pline++; // Extra space
+    }
+
+    size_t min = strlen(keyword);
+    if (strncmp(pline, keyword, min) == 0) {
+        pline += min;
+        pline ++; // Extra space
+    }
+
+    memmove(line, pline, strlen(pline) + 1);
+}
+
 char* extractPath(const char* line) {
     const char* start = strchr(line, '"');
     if (!start) {
@@ -138,6 +159,7 @@ void getMatchingLinesFromTargets(char* extractedPaths[], int numExtractedPaths,
 int main(int argc, char* argv[]) {
     const char* confFileName = "/.currTasks.conf";
     const int MAX_LINES_IN_FILE = 100;
+    char* keyword = "WAIT";
 
     char* lines[MAX_LINES_IN_FILE]; // array of addresses to beginnings of chars
 
@@ -238,6 +260,7 @@ int main(int argc, char* argv[]) {
             if (i == 0) {
                 char firstLineText[256];
                 const char* prefix = "Current Task: ";
+                trimKeywordPrefix(matchingLines[0], keyword);
                 snprintf(firstLineText, sizeof(firstLineText), "%s%s", prefix, matchingLines[0]);
                 textSurface = TTF_RenderText_Solid(font, firstLineText, textColor);
             }
