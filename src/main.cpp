@@ -11,10 +11,10 @@
 #include <unistd.h>
 
 struct {
-    unsigned char r = 51;
-    unsigned char g = 153;
-    unsigned char b = 51;
-    unsigned char a = 255;
+    unsigned char r = 64;
+    unsigned char g = 128;
+    unsigned char b = 64;
+    unsigned char a = 240;
 } BgColor;
 
 const char* getHomeDir() { return getenv("HOME"); }
@@ -43,7 +43,8 @@ void readWaitsFromTargets(char* path, char* matchingLines[], int* currLineInML) 
 }
 
 void trimKeywordPrefix(char* line, char* keyword) {
-    if (!line) return;
+    if (!line)
+        return;
 
     char* pline = line;
 
@@ -57,7 +58,7 @@ void trimKeywordPrefix(char* line, char* keyword) {
     size_t min = strlen(keyword);
     if (strncmp(pline, keyword, min) == 0) {
         pline += min;
-        pline ++; // Extra space
+        pline++; // Extra space
     }
 
     memmove(line, pline, strlen(pline) + 1);
@@ -248,25 +249,37 @@ int main(int argc, char* argv[]) {
                 }
                 break;
             case SDL_KEYDOWN:
-                switch (event.key.keysym.sym) {
-                    case SDLK_LEFT:
-                        BgColor.r += 51;
+                if (event.key.keysym.sym == SDLK_r && (event.key.keysym.mod & KMOD_SHIFT)) {
+                    BgColor.r -= 16;
+                } else if (event.key.keysym.sym == SDLK_g && (event.key.keysym.mod & KMOD_SHIFT)) {
+                    BgColor.g -= 16;
+                } else if (event.key.keysym.sym == SDLK_b && (event.key.keysym.mod & KMOD_SHIFT)) {
+                    BgColor.b -= 16;
+                } else if (event.key.keysym.sym == SDLK_a && (event.key.keysym.mod & KMOD_SHIFT)) {
+                    BgColor.a -= 16;
+                } else {
+                    switch (event.key.keysym.sym) {
+                    case SDLK_r:
+                        BgColor.r += 16;
                         break;
-                    case SDLK_UP:
-                        BgColor.g += 51;
+                    case SDLK_g:
+                        BgColor.g += 16;
                         break;
-                    case SDLK_RIGHT:
-                        BgColor.b += 51;
+                    case SDLK_b:
+                        BgColor.b += 16;
                         break;
-                    case SDLK_DOWN:
-                        BgColor.a += 51;
+                    case SDLK_a:
+                        BgColor.a += 16;
                         break;
+                    }
                 }
             }
         }
 
         SDL_SetRenderDrawColor(renderer, BgColor.r, BgColor.g, BgColor.b, BgColor.a);
-        SDL_RenderClear(renderer);                      // Clear the renderer buffer
+        printf("BG Colors:\n    r = %u\n    g = %u\n    b = %u\n    a = %u\n", BgColor.r, BgColor.g,
+               BgColor.b, BgColor.a);
+        SDL_RenderClear(renderer); // Clear the renderer buffer
 
         int yOffset = 0;
         for (int i = 0; i < matchingLinesCount; i++) {
@@ -279,8 +292,7 @@ int main(int argc, char* argv[]) {
                 trimKeywordPrefix(matchingLines[0], keyword);
                 snprintf(firstLineText, sizeof(firstLineText), "%s%s", prefix, matchingLines[0]);
                 textSurface = TTF_RenderText_Solid(font, firstLineText, textColor);
-            }
-            else {
+            } else {
                 textSurface = TTF_RenderText_Solid(font, matchingLines[i], textColor);
             }
             if (!textSurface) {
