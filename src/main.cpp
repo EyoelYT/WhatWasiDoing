@@ -1,5 +1,6 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_events.h>
+#include <SDL2/SDL_keycode.h>
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_timer.h>
 #include <SDL2/SDL_ttf.h>
@@ -10,10 +11,10 @@
 #include <unistd.h>
 
 struct {
-    Uint8 r = 50;
-    Uint8 g = 150;
-    Uint8 b = 50;
-    Uint8 a = 255;
+    unsigned char r = 51;
+    unsigned char g = 153;
+    unsigned char b = 51;
+    unsigned char a = 255;
 } BgColor;
 
 const char* getHomeDir() { return getenv("HOME"); }
@@ -159,7 +160,7 @@ void getMatchingLinesFromTargets(char* extractedPaths[], int numExtractedPaths,
 int main(int argc, char* argv[]) {
     const char* confFileName = "/.currTasks.conf";
     const int MAX_LINES_IN_FILE = 100;
-    char* keyword = "WAIT";
+    char* keyword = (char*)"WAIT";
 
     char* lines[MAX_LINES_IN_FILE]; // array of addresses to beginnings of chars
 
@@ -246,6 +247,21 @@ int main(int argc, char* argv[]) {
                     running = false;
                 }
                 break;
+            case SDL_KEYDOWN:
+                switch (event.key.keysym.sym) {
+                    case SDLK_LEFT:
+                        BgColor.r += 51;
+                        break;
+                    case SDLK_UP:
+                        BgColor.g += 51;
+                        break;
+                    case SDLK_RIGHT:
+                        BgColor.b += 51;
+                        break;
+                    case SDLK_DOWN:
+                        BgColor.a += 51;
+                        break;
+                }
             }
         }
 
