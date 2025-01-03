@@ -17,32 +17,31 @@ struct {
     unsigned char a = 240;
 } BgColor;
 
-const char* getHomeDir() { return getenv("HOME"); }
 
-void readWaitsFromTargets(char* path, char* matchingLines[], int* currLineInML) {
-    void* fileContent = SDL_LoadFile(path, NULL);
+void read_waits_from_targets(char* path, char* matching_lines[], int* curr_line_in_matching_lines) {
+    void* file_content = SDL_LoadFile(path, NULL);
 
-    if (!fileContent) {
-        printf("readWaits::fileContent: %s\n", (char*)fileContent);
+    if (!file_content) {
+        printf("readWaits::file_content: %s\n", (char*)file_content);
         printf("readWaits::Error loading file: %s\n", SDL_GetError());
         return;
     }
 
-    char* line = strtok((char*)fileContent, "\n");
+    char* line = strtok((char*)file_content, "\n");
 
     // Search for "WAIT" in each line
     while (line != NULL) {
         if (strstr(line, "WAIT")) {
-            matchingLines[*currLineInML] = strdup(line);
-            (*currLineInML)++;
+            matching_lines[*curr_line_in_matching_lines] = strdup(line);
+            (*curr_line_in_matching_lines)++;
             printf("\nreadWaits::MATCHING WAITS:\n%s\n", line);
         }
         line = strtok(NULL, "\n");
     }
-    SDL_free(fileContent);
+    SDL_free(file_content);
 }
 
-void trimKeywordPrefix(char* line, char* keyword) {
+void trim_keyword_prefix(char* line, char* keyword) {
     if (!line)
         return;
 
@@ -64,7 +63,7 @@ void trimKeywordPrefix(char* line, char* keyword) {
     memmove(line, pline, strlen(pline) + 1);
 }
 
-char* extractPath(const char* line) {
+char* extract_path(const char* line) {
     const char* start = strchr(line, '"');
     if (!start) {
         return NULL; // no starting double quotes found
@@ -77,7 +76,7 @@ char* extractPath(const char* line) {
     int len = end - start - 1;
     char* path = (char*)malloc(len + 1);
     if (!path) {
-        perror("extractPath::Memory allocation error");
+        perror("extract_path::Memory allocation error");
         exit(1);
     }
     strncpy(path, start + 1, len);
@@ -86,16 +85,16 @@ char* extractPath(const char* line) {
     return path;
 }
 
-int readConfigFile(const char* confFilePath, const int MAX_LINES_IN_FILE, char* lines[]) {
+int read_config_file(const char* conf_file_path, const int MAX_LINES_IN_FILE, char* lines[]) {
     // Get config file vars
-    FILE* file = fopen(confFilePath, "r");
+    FILE* file = fopen(conf_file_path, "r");
     if (!file) {
         perror("main::Error opening file");
-        printf("'%s' not found\n", confFilePath);
+        printf("'%s' not found\n", conf_file_path);
         return 1;
     }
 
-    int numLines = 0;
+    int num_lines = 0;
 
     char buffer[1024];
 
@@ -109,89 +108,90 @@ int readConfigFile(const char* confFilePath, const int MAX_LINES_IN_FILE, char* 
         }
 
         // put contents of buffer into new memory, make lines[*char] point to start of buffer
-        lines[numLines] = strdup(buffer);
-        if (!lines[numLines]) {
+        lines[num_lines] = strdup(buffer);
+        if (!lines[num_lines]) {
             perror("main::Memory allocation error");
             fclose(file);
             return 1;
         }
 
-        numLines++;
-        if (numLines >= MAX_LINES_IN_FILE) {
-            printf("main::Warning: Reached maximum number of lines in file: %d", MAX_LINES_IN_FILE);
+        num_lines++;
+        if (num_lines >= MAX_LINES_IN_FILE) {
+            printf("main::Warning: Reached maximum number of lines in file: %d",
+                         MAX_LINES_IN_FILE);
             break;
         }
     }
 
     // Show the lines that are read
-    printf("main::Lines read from %s:\n", confFilePath);
-    for (int i = 0; i < numLines; ++i) {
+    printf("main::Lines read from %s:\n", conf_file_path);
+    for (int i = 0; i < num_lines; ++i) {
         printf("%d: %s\n", i + 1, lines[i]);
     }
 
     fclose(file);
 
-    return numLines;
+    return num_lines;
 }
 
-void getTargetPaths(char* extractedPaths[], int* numExtractedPaths, int numLinesInConfigFile,
-                    char* lines[]) {
-    for (int i = 0; i < numLinesInConfigFile; ++i) {
-        char* path = extractPath(lines[i]);
+void get_target_paths(char* extracted_paths[], int* num_extracted_paths,
+                      int num_lines_in_config_file, char* lines[]) {
+    for (int i = 0; i < num_lines_in_config_file; ++i) {
+        char* path = extract_path(lines[i]);
         if (path) {
-            extractedPaths[(*numExtractedPaths)++] = path;
+            extracted_paths[(*num_extracted_paths)++] = path;
         }
     }
 }
 
-void getMatchingLinesFromTargets(char* extractedPaths[], int numExtractedPaths,
-                                 char* matchingLines[], int* matchingLinesCount) {
+void get_matching_lines_from_targets(char* extracted_paths[], int num_extracted_paths,
+                                     char* matching_lines[], int* matching_lines_count) {
     printf("\nmain::Extracted paths:\n");
-    for (int i = 0; i < numExtractedPaths; ++i) {
-        printf("\033[33m%d: %s\033[0m\n", i + 1, extractedPaths[i]);
-        readWaitsFromTargets(extractedPaths[i], matchingLines, matchingLinesCount);
+    for (int i = 0; i < num_extracted_paths; ++i) {
+        printf("\033[33m%d: %s\033[0m\n", i + 1, extracted_paths[i]);
+        read_waits_from_targets(extracted_paths[i], matching_lines, matching_lines_count);
     }
-    printf("\nmain::Matches found: %d\n", *matchingLinesCount);
+    printf("\nmain::Matches found: %d\n", *matching_lines_count);
 
-    for (int i = 0; i < *matchingLinesCount; ++i) {
-        printf("main::PRINT MATCHING LINES: %s\n", matchingLines[i]);
+    for (int i = 0; i < *matching_lines_count; ++i) {
+        printf("main::PRINT MATCHING LINES: %s\n", matching_lines[i]);
     }
 }
 
 int main(int argc, char* argv[]) {
-    const char* confFileName = "/.currTasks.conf";
+    const char* conf_file_name = "/.currTasks.conf";
     const int MAX_LINES_IN_FILE = 100;
     char* keyword = (char*)"WAIT";
 
     char* lines[MAX_LINES_IN_FILE]; // array of addresses to beginnings of chars
 
-    char confFilePath[1024];
-    int numLinesInConfigFile;
+    char conf_file_path[1024];
+    int num_lines_in_config_file;
 
-    char* extractedPaths[MAX_LINES_IN_FILE];
-    int numExtractedPaths;
+    char* extracted_paths[MAX_LINES_IN_FILE];
+    int num_extracted_paths;
 
-    char** matchingLines;
-    int matchingLinesCount;
+    char** matching_lines;
+    int matching_lines_count;
 
     // Get the user's home dir
-    const char* homeDir = getenv("HOME");
-    if (!homeDir) {
+    const char* home_dir = getenv("HOME");
+    if (!home_dir) {
         perror("main::Error getting home directory");
         return 1;
     }
     // Get the full file path to the config file (join the strings)
-    snprintf(confFilePath, sizeof(confFilePath), "%s%s", homeDir, confFileName);
-    numLinesInConfigFile = readConfigFile(confFilePath, MAX_LINES_IN_FILE, lines);
+    snprintf(conf_file_path, sizeof(conf_file_path), "%s%s", home_dir, conf_file_name);
+    num_lines_in_config_file = read_config_file(conf_file_path, MAX_LINES_IN_FILE, lines);
 
     // extract the path strings from all the lines
-    numExtractedPaths = 0;
-    getTargetPaths(extractedPaths, &numExtractedPaths, numLinesInConfigFile, lines);
+    num_extracted_paths = 0;
+    get_target_paths(extracted_paths, &num_extracted_paths, num_lines_in_config_file, lines);
 
-    matchingLines = (char**)malloc(100 * sizeof(char*));
-    matchingLinesCount = 0;
-    getMatchingLinesFromTargets(extractedPaths, numExtractedPaths, matchingLines,
-                                &matchingLinesCount);
+    matching_lines = (char**)malloc(100 * sizeof(char*));
+    matching_lines_count = 0;
+    get_matching_lines_from_targets(extracted_paths, num_extracted_paths, matching_lines,
+                                    &matching_lines_count);
 
     // SDL /////////////////////////////////////////////////////////
     printf("\nmain::Initializing SDL_ttf\n");
@@ -202,13 +202,14 @@ int main(int argc, char* argv[]) {
     }
 
     printf("\nmain::Loading font\n");
-    #ifdef _WIN32
-    const char* fontPath = "C:\\Users\\Eyu\\Projects\\probe\\nerd-fonts\\patched-fonts\\Iosevka\\IosevkaNerdFont-Regular.ttf";
-    #else
-    const char* fontPath = "/usr/share/fonts/TTF/IosevkaNerdFont-Regular.ttf";
-    #endif
-    int fontSize = 36;
-    TTF_Font* font = TTF_OpenFont(fontPath, fontSize);
+#ifdef _WIN32
+    const char* font_path = "C:\\Users\\Eyu\\Projects\\probe\\nerd-fonts\\patched-"
+                            "fonts\\Iosevka\\IosevkaNerdFont-Regular.ttf";
+#else
+    const char* font_path = "/usr/share/fonts/TTF/IosevkaNerdFont-Regular.ttf";
+#endif
+    int font_size = 36;
+    TTF_Font* font = TTF_OpenFont(font_path, font_size);
     if (!font) {
         printf("Failed to load font! TTF_Error: %s\n", TTF_GetError());
         TTF_Quit();
@@ -281,46 +282,47 @@ int main(int argc, char* argv[]) {
                BgColor.b, BgColor.a);
         SDL_RenderClear(renderer); // Clear the renderer buffer
 
-        int yOffset = 0;
-        for (int i = 0; i < matchingLinesCount; i++) {
+        int y_offset = 0;
+        for (int i = 0; i < matching_lines_count; i++) {
 
-            SDL_Color textColor = {255, 255, 255, 255};
-            SDL_Surface* textSurface;
+            SDL_Color text_color = {255, 255, 255, 255};
+            SDL_Surface* text_surface;
             if (i == 0) {
-                char firstLineText[256];
+                char first_line_text[256];
                 const char* prefix = "Current Task: ";
-                trimKeywordPrefix(matchingLines[0], keyword);
-                snprintf(firstLineText, sizeof(firstLineText), "%s%s", prefix, matchingLines[0]);
-                textSurface = TTF_RenderText_Solid(font, firstLineText, textColor);
+                trim_keyword_prefix(matching_lines[0], keyword);
+                snprintf(first_line_text, sizeof(first_line_text), "%s%s", prefix,
+                         matching_lines[0]);
+                text_surface = TTF_RenderText_Solid(font, first_line_text, text_color);
             } else {
-                textSurface = TTF_RenderText_Solid(font, matchingLines[i], textColor);
+                text_surface = TTF_RenderText_Solid(font, matching_lines[i], text_color);
             }
-            if (!textSurface) {
+            if (!text_surface) {
                 fprintf(stderr, "Unable to render text! TTF_Error: %s\n", TTF_GetError());
                 continue;
             }
 
-            SDL_Texture* textTexture = SDL_CreateTextureFromSurface(renderer, textSurface);
-            SDL_FreeSurface(textSurface); // No longer needed
-            if (!textTexture) {
+            SDL_Texture* text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
+            SDL_FreeSurface(text_surface); // No longer needed
+            if (!text_texture) {
                 fprintf(stderr, "Failed to create texture! SDL_Error: %s\n", SDL_GetError());
                 continue;
             }
 
-            SDL_Rect srcRect = {0, 0, textSurface->w, textSurface->h};
-            SDL_Rect dstRect = {0, yOffset, textSurface->w, textSurface->h};
-            SDL_RenderCopy(renderer, textTexture, &srcRect, &dstRect);
-            SDL_DestroyTexture(textTexture);
+            SDL_Rect src_Rect = {0, 0, text_surface->w, text_surface->h};
+            SDL_Rect dstRect = {0, y_offset, text_surface->w, text_surface->h};
+            SDL_RenderCopy(renderer, text_texture, &src_Rect, &dstRect);
+            SDL_DestroyTexture(text_texture);
 
-            yOffset += textSurface->h;
+            y_offset += text_surface->h;
         }
         SDL_RenderPresent(renderer); // Update screen
 
         SDL_Delay(1000);
 
-        matchingLinesCount = 0;
-        getMatchingLinesFromTargets(extractedPaths, numExtractedPaths, matchingLines,
-                                    &matchingLinesCount);
+        matching_lines_count = 0;
+        get_matching_lines_from_targets(extracted_paths, num_extracted_paths, matching_lines,
+                                        &matching_lines_count);
     }
 
     printf("\nmain::Destroying Renderer\n");
@@ -334,10 +336,10 @@ int main(int argc, char* argv[]) {
     SDL_Quit();
 
     // free the allocated memory (the array if char*)
-    for (int i = 0; i < numLinesInConfigFile; ++i) {
+    for (int i = 0; i < num_lines_in_config_file; ++i) {
         free(lines[i]);
     }
-    free(matchingLines);
+    free(matching_lines);
     printf("\nmain::Exit\n");
     return 0;
 }
