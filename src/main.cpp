@@ -17,13 +17,18 @@ struct {
     unsigned char a = 240;
 } BgColor;
 
+#ifdef DEBUG_MODE
+#define print_in_debug_mode(...) printf(__VA_ARGS__)
+#else
+#define print_in_debug_mode(...) (void(0))
+#endif
 
 void read_waits_from_targets(char* path, char* matching_lines[], int* curr_line_in_matching_lines) {
     void* file_content = SDL_LoadFile(path, NULL);
 
     if (!file_content) {
-        printf("readWaits::file_content: %s\n", (char*)file_content);
-        printf("readWaits::Error loading file: %s\n", SDL_GetError());
+        print_in_debug_mode("readWaits::file_content: %s\n", (char*)file_content);
+        print_in_debug_mode("readWaits::Error loading file: %s\n", SDL_GetError());
         return;
     }
 
@@ -34,7 +39,7 @@ void read_waits_from_targets(char* path, char* matching_lines[], int* curr_line_
         if (strstr(line, "WAIT")) {
             matching_lines[*curr_line_in_matching_lines] = strdup(line);
             (*curr_line_in_matching_lines)++;
-            printf("\nreadWaits::MATCHING WAITS:\n%s\n", line);
+            print_in_debug_mode("\nreadWaits::MATCHING WAITS:\n%s\n", line);
         }
         line = strtok(NULL, "\n");
     }
@@ -90,7 +95,7 @@ int read_config_file(const char* conf_file_path, const int MAX_LINES_IN_FILE, ch
     FILE* file = fopen(conf_file_path, "r");
     if (!file) {
         perror("main::Error opening file");
-        printf("'%s' not found\n", conf_file_path);
+        print_in_debug_mode("'%s' not found\n", conf_file_path);
         return 1;
     }
 
@@ -117,16 +122,16 @@ int read_config_file(const char* conf_file_path, const int MAX_LINES_IN_FILE, ch
 
         num_lines++;
         if (num_lines >= MAX_LINES_IN_FILE) {
-            printf("main::Warning: Reached maximum number of lines in file: %d",
-                         MAX_LINES_IN_FILE);
+            print_in_debug_mode("main::Warning: Reached maximum number of lines in file: %d",
+                                MAX_LINES_IN_FILE);
             break;
         }
     }
 
     // Show the lines that are read
-    printf("main::Lines read from %s:\n", conf_file_path);
+    print_in_debug_mode("main::Lines read from %s:\n", conf_file_path);
     for (int i = 0; i < num_lines; ++i) {
-        printf("%d: %s\n", i + 1, lines[i]);
+        print_in_debug_mode("%d: %s\n", i + 1, lines[i]);
     }
 
     fclose(file);
@@ -146,15 +151,15 @@ void get_target_paths(char* extracted_paths[], int* num_extracted_paths,
 
 void get_matching_lines_from_targets(char* extracted_paths[], int num_extracted_paths,
                                      char* matching_lines[], int* matching_lines_count) {
-    printf("\nmain::Extracted paths:\n");
+    print_in_debug_mode("\nmain::Extracted paths:\n");
     for (int i = 0; i < num_extracted_paths; ++i) {
-        printf("\033[33m%d: %s\033[0m\n", i + 1, extracted_paths[i]);
+        print_in_debug_mode("\033[33m%d: %s\033[0m\n", i + 1, extracted_paths[i]);
         read_waits_from_targets(extracted_paths[i], matching_lines, matching_lines_count);
     }
-    printf("\nmain::Matches found: %d\n", *matching_lines_count);
+    print_in_debug_mode("\nmain::Matches found: %d\n", *matching_lines_count);
 
     for (int i = 0; i < *matching_lines_count; ++i) {
-        printf("main::PRINT MATCHING LINES: %s\n", matching_lines[i]);
+        print_in_debug_mode("main::PRINT MATCHING LINES: %s\n", matching_lines[i]);
     }
 }
 
@@ -194,14 +199,14 @@ int main(int argc, char* argv[]) {
                                     &matching_lines_count);
 
     // SDL /////////////////////////////////////////////////////////
-    printf("\nmain::Initializing SDL_ttf\n");
+    print_in_debug_mode("\nmain::Initializing SDL_ttf\n");
     if (TTF_Init() == -1) {
-        printf("SDL_ttf could not initialize! TTF_Error: %s\n", TTF_GetError());
+        print_in_debug_mode("SDL_ttf could not initialize! TTF_Error: %s\n", TTF_GetError());
         SDL_Quit();
         return 1;
     }
 
-    printf("\nmain::Loading font\n");
+    print_in_debug_mode("\nmain::Loading font\n");
 #ifdef _WIN32
     const char* font_path = "C:\\Users\\Eyu\\Projects\\probe\\nerd-fonts\\patched-"
                             "fonts\\Iosevka\\IosevkaNerdFont-Regular.ttf";
@@ -211,28 +216,28 @@ int main(int argc, char* argv[]) {
     int font_size = 36;
     TTF_Font* font = TTF_OpenFont(font_path, font_size);
     if (!font) {
-        printf("Failed to load font! TTF_Error: %s\n", TTF_GetError());
+        print_in_debug_mode("Failed to load font! TTF_Error: %s\n", TTF_GetError());
         TTF_Quit();
         SDL_Quit();
         return 1;
     }
 
-    printf("\nmain::Initializing SDL\n");
+    print_in_debug_mode("\nmain::Initializing SDL\n");
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
+        print_in_debug_mode("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
         return -1;
     }
 
-    SDL_Window* window = SDL_CreateWindow("SDL Window", 100, 0, 1500, 100,
+    SDL_Window* window = SDL_CreateWindow("SDL Window", 10, 1550, 2500, 50,
                                           SDL_WINDOW_RESIZABLE); // SDL_WINDOW_BORDERLESS
     if (!window) {
-        printf("Failed to create window\n");
+        print_in_debug_mode("Failed to create window\n");
         return -1;
     }
 
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
     if (!renderer) {
-        printf("Renderer could not be created! SDL_Error: %s\n", SDL_GetError());
+        print_in_debug_mode("Renderer could not be created! SDL_Error: %s\n", SDL_GetError());
         return -1;
     }
 
@@ -278,8 +283,8 @@ int main(int argc, char* argv[]) {
         }
 
         SDL_SetRenderDrawColor(renderer, BgColor.r, BgColor.g, BgColor.b, BgColor.a);
-        printf("BG Colors:\n    r = %u\n    g = %u\n    b = %u\n    a = %u\n", BgColor.r, BgColor.g,
-               BgColor.b, BgColor.a);
+        print_in_debug_mode("BG Colors:\n    r = %u\n    g = %u\n    b = %u\n    a = %u\n",
+                            BgColor.r, BgColor.g, BgColor.b, BgColor.a);
         SDL_RenderClear(renderer); // Clear the renderer buffer
 
         int y_offset = 0;
@@ -325,14 +330,14 @@ int main(int argc, char* argv[]) {
                                         &matching_lines_count);
     }
 
-    printf("\nmain::Destroying Renderer\n");
+    print_in_debug_mode("\nmain::Destroying Renderer\n");
     SDL_DestroyRenderer(renderer);
-    printf("\nmain::Destroying Window\n");
+    print_in_debug_mode("\nmain::Destroying Window\n");
     SDL_DestroyWindow(window);
-    printf("\nmain::Closing SDL_ttf\n");
+    print_in_debug_mode("\nmain::Closing SDL_ttf\n");
     TTF_CloseFont(font);
     TTF_Quit();
-    printf("\nmain::Quitting SDL\n");
+    print_in_debug_mode("\nmain::Quitting SDL\n");
     SDL_Quit();
 
     // free the allocated memory (the array if char*)
@@ -340,6 +345,6 @@ int main(int argc, char* argv[]) {
         free(lines[i]);
     }
     free(matching_lines);
-    printf("\nmain::Exit\n");
+    print_in_debug_mode("\nmain::Exit\n");
     return 0;
 }
