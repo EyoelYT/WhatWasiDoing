@@ -19,6 +19,9 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#else
+#include <X11/Xatom.h>
+#include <X11/Xlib.h>
 #endif
 
 struct {
@@ -233,25 +236,57 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    SDL_Window* window = SDL_CreateWindow("SDL Window", 10, 1550, 2500, 50,
-                                          SDL_WINDOW_RESIZABLE); // SDL_WINDOW_BORDERLESS
+    SDL_Window* window = SDL_CreateWindow("SDL Window", 10, 1550, 2500, 50, SDL_WINDOW_RESIZABLE);
     if (!window) {
         print_in_debug_mode("Failed to create window\n");
         return -1;
     }
-#ifdef _WIN32
+
     SDL_SysWMinfo wmInfo;
     SDL_VERSION(&wmInfo.version);
 
     if (SDL_GetWindowWMInfo(window, &wmInfo)) {
-        HWND hwnd = wmInfo.info.win.window;
+        if (wmInfo.subsystem == SDL_SYSWM_X11) {
+#ifdef linux
+            Display* display = wmInfo.info.x11.display;
+            Window x11Window = wmInfo.info.x11.window;
 
-        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
-    } else {
-        print_in_debug_mode("SDL_GetWindowWMInfo Error: %s\n", SDL_GetError());
-    }
+            // Get the _NET_WM_STATE and _NET_WM_STATE_ABOVE atoms
+            Atom wmState = XInternAtom(display, "_NET_WM_STATE", False);
+            Atom wmStateAbove = XInternAtom(display, "_NET_WM_STATE_ABOVE", False);
+
+            // Prepare the event to set the window as "always on top"
+            XEvent event;
+            memset(&event, 0, sizeof(event));
+            event.xclient.type = ClientMessage;
+            event.xclient.window = x11Window;
+            event.xclient.message_type = wmState;
+            event.xclient.format = 32;
+            event.xclient.data.l[0] = 1; // _NET_WM_STATE_ADD
+            event.xclient.data.l[1] = wmStateAbove;
+            event.xclient.data.l[2] = 0;
+            event.xclient.data.l[3] = 1;
+            event.xclient.data.l[4] = 0;
+
+            // Send the event to the X server
+            XSendEvent(display, DefaultRootWindow(display), False,
+                       SubstructureNotifyMask | SubstructureRedirectMask, &event);
+            XFlush(display);
 #endif
+        }
+#ifdef _WIN32
+        else if (wmInfo.subsystem == SDL_SYSWM_WINDOWS) {
+            // Get the window handle
+            HWND hwnd = wmInfo.info.win.window;
 
+            // Set to always on top
+            SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+        }
+#endif
+        else {
+            print_in_debug_mode("SDL_GetWindowWMInfo Error: %s\n", SDL_GetError());
+        }
+    }
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
     if (!renderer) {
         print_in_debug_mode("Renderer could not be created! SDL_Error: %s\n", SDL_GetError());
