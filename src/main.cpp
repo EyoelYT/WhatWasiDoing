@@ -114,7 +114,7 @@ FILE* create_demo_config_file(const char* conf_file_path) {
            file);
 
     fclose(file);
-    return file;
+    return fopen(conf_file_path, "r");
 }
 
 // problem is that after creating the conf file, it does not read the value within the `file`
@@ -129,8 +129,6 @@ int read_config_file(const char* conf_file_path, const int MAX_LINES_IN_FILE, ch
         if (!file) {
             perror("read_config_file::Unable to create file");
             return 1;
-        } else {
-            file = fopen(conf_file_path, "r");
         }
     }
 
