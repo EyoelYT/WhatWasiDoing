@@ -6,6 +6,7 @@
 #include <SDL2/SDL_timer.h>
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_video.h>
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -98,13 +99,39 @@ char* extract_path(const char* line) {
     return path;
 }
 
+FILE* create_demo_config_file(const char* conf_file_path) {
+    FILE* file = fopen(conf_file_path, "wb");
+    if (!file) {
+        fprintf(stderr, "create_demo_config_file::Couldn't create demo file '%s': %s\n",
+                conf_file_path, strerror(errno));
+        return NULL;
+    }
+    char generated_file_content[] = "files = [\"/mnt/c/Users/Eyu/AllMyFilesArch/org/agenda2.org\", "
+                                    "\"/mnt/c/Users/Eyu/AllMyFilesArch/org/current.org\",]\n";
+    int generated_file_content_size = sizeof(generated_file_content);
+
+    fwrite(generated_file_content, sizeof generated_file_content[0], generated_file_content_size,
+           file);
+
+    fclose(file);
+    return file;
+}
+
+// problem is that after creating the conf file, it does not read the value within the `file`
+// variable scan for
 int read_config_file(const char* conf_file_path, const int MAX_LINES_IN_FILE, char* lines[]) {
     // Get config file vars
     FILE* file = fopen(conf_file_path, "r");
     if (!file) {
-        perror("main::Error opening file");
+        print_in_debug_mode("read_config_file::File doesn't exist. Creating demo file.");
         print_in_debug_mode("'%s' not found\n", conf_file_path);
-        return 1;
+        file = create_demo_config_file(conf_file_path);
+        if (!file) {
+            perror("read_config_file::Unable to create file");
+            return 1;
+        } else {
+            file = fopen(conf_file_path, "r");
+        }
     }
 
     int num_lines = 0;
