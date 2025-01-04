@@ -2,6 +2,7 @@
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_keycode.h>
 #include <SDL2/SDL_render.h>
+#include <SDL2/SDL_syswm.h>
 #include <SDL2/SDL_timer.h>
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_video.h>
@@ -10,18 +11,22 @@
 #include <string.h>
 #include <unistd.h>
 
+#ifdef DEBUG_MODE
+#define print_in_debug_mode(...) printf(__VA_ARGS__)
+#else
+#define print_in_debug_mode(...) (void(0))
+#endif
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 struct {
     unsigned char r = 64;
     unsigned char g = 128;
     unsigned char b = 64;
     unsigned char a = 240;
 } BgColor;
-
-#ifdef DEBUG_MODE
-#define print_in_debug_mode(...) printf(__VA_ARGS__)
-#else
-#define print_in_debug_mode(...) (void(0))
-#endif
 
 void read_waits_from_targets(char* path, char* matching_lines[], int* curr_line_in_matching_lines) {
     void* file_content = SDL_LoadFile(path, NULL);
@@ -234,6 +239,18 @@ int main(int argc, char* argv[]) {
         print_in_debug_mode("Failed to create window\n");
         return -1;
     }
+#ifdef _WIN32
+    SDL_SysWMinfo wmInfo;
+    SDL_VERSION(&wmInfo.version);
+
+    if (SDL_GetWindowWMInfo(window, &wmInfo)) {
+        HWND hwnd = wmInfo.info.win.window;
+
+        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+    } else {
+        print_in_debug_mode("SDL_GetWindowWMInfo Error: %s\n", SDL_GetError());
+    }
+#endif
 
     SDL_Renderer* renderer = SDL_CreateRenderer(window, -1, 0);
     if (!renderer) {
