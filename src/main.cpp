@@ -268,7 +268,19 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    SDL_Window* window = SDL_CreateWindow("SDL Window", 10, 1550, 2500, 50, SDL_WINDOW_RESIZABLE);
+    int displayIndex = 0;
+    SDL_DisplayMode mode;
+    SDL_GetDesktopDisplayMode(displayIndex, &mode);
+
+    int res_x = 10;
+    int width = mode.w - 60;
+
+    int res_y = mode.h - 50;
+    int height = 50;
+
+    SDL_Window* window = SDL_CreateWindow("SDL Window", res_x, res_y, width, height,
+                                          SDL_WINDOW_RESIZABLE | SDL_WINDOW_BORDERLESS);
+
     if (!window) {
         print_in_debug_mode("Failed to create window\n");
         return -1;
@@ -407,7 +419,8 @@ int main(int argc, char* argv[]) {
         }
         SDL_RenderPresent(renderer); // Update screen
 
-        SDL_Delay(1000);
+        // SDL_Delay(1000);
+        SDL_Delay(256);
 
         matching_lines_count = 0;
         get_matching_lines_from_targets(extracted_paths, num_extracted_paths, matching_lines,
