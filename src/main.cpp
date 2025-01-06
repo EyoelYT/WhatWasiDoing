@@ -106,8 +106,15 @@ FILE* create_demo_config_file(const char* conf_file_path) {
                 conf_file_path, strerror(errno));
         return NULL;
     }
+
+#ifdef _WIN32
+    char generated_file_content[] =
+        "files = [\"C:\\Users\\Eyu\\AllMyFilesArch\\org\\agenda2.org\", "
+        "\"C:\\Users\\Eyu\\AllMyFilesArch\\org\\current.org\",]\n";
+#else
     char generated_file_content[] = "files = [\"/mnt/c/Users/Eyu/AllMyFilesArch/org/agenda2.org\", "
                                     "\"/mnt/c/Users/Eyu/AllMyFilesArch/org/current.org\",]\n";
+#endif
     int generated_file_content_size = sizeof(generated_file_content);
 
     fwrite(generated_file_content, sizeof generated_file_content[0], generated_file_content_size,
