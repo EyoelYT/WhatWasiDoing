@@ -1,29 +1,29 @@
-
-# Table of Contents
-
-1.  [Requirements](#org204786f)
-    1.  [Arch Linux](#orgf991b7d)
-    2.  [Windows](#orga298443)
+- [Requirements](#org7d38737)
+  - [Arch Linux](#org36c8978)
+  - [Windows](#orga8a9454)
 
 
 
-<a id="org204786f"></a>
+
+<a id="org7d38737"></a>
 
 # Requirements
 
 -   sdl2
 
 
-<a id="orgf991b7d"></a>
+<a id="org36c8978"></a>
 
 ## Arch Linux
 
-    pacman -S sdl2 sdl2_ttf
+```shell
+pacman -S sdl2 sdl2_ttf
+```
 
 
-<a id="orga298443"></a>
+<a id="orga8a9454"></a>
 
 ## Windows
 
-Install SDL2 from [here](https://github.com/libsdl-org/SDL/releases )
+Install [SDL2](https://github.com/libsdl-org/SDL/releases)
 
