@@ -36,8 +36,8 @@ void read_waits_from_targets(char* path, char* matching_lines[], int* curr_line_
     void* file_content = SDL_LoadFile(path, NULL);
 
     if (!file_content) {
-        print_in_debug_mode("readWaits::file_content: %s\n", (char*)file_content);
         print_in_debug_mode("readWaits::Error loading file: %s\n", SDL_GetError());
+        print_in_debug_mode("readWaits::file_content: %s\n", (char*)file_content);
         return;
     }
 
@@ -251,7 +251,7 @@ int main(int argc, char* argv[]) {
     const char* font_path = "C:\\Users\\Eyu\\Projects\\probe\\nerd-fonts\\patched-"
                             "fonts\\Iosevka\\IosevkaNerdFont-Regular.ttf";
 #else
-    const char* font_path = "/usr/share/fonts/TTF/IosevkaNerdFont-Regular.ttf";
+    const char* font_path = "/usr/share/fonts/adobe-source-code-pro/SourceCodePro-Regular.otf";
 #endif
     int font_size = 36;
     TTF_Font* font = TTF_OpenFont(font_path, font_size);
@@ -410,9 +410,9 @@ int main(int argc, char* argv[]) {
                 continue;
             }
 
-            SDL_Rect src_Rect = {0, 0, text_surface->w, text_surface->h};
-            SDL_Rect dstRect = {0, y_offset, text_surface->w, text_surface->h};
-            SDL_RenderCopy(renderer, text_texture, &src_Rect, &dstRect);
+            SDL_Rect src_rect = {0, 0, text_surface->w, text_surface->h};
+            SDL_Rect dst_rect = {0, y_offset, text_surface->w, text_surface->h};
+            SDL_RenderCopy(renderer, text_texture, &src_rect, &dst_rect);
             SDL_DestroyTexture(text_texture);
 
             y_offset += text_surface->h;
