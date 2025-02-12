@@ -2,6 +2,7 @@
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_keycode.h>
 #include <SDL2/SDL_render.h>
+#include <SDL2/SDL_stdinc.h>
 #include <SDL2/SDL_syswm.h>
 #include <SDL2/SDL_timer.h>
 #include <SDL2/SDL_ttf.h>
@@ -278,8 +279,10 @@ int main(int argc, char* argv[]) {
     int res_y = mode.h - 50;
     int height = 50;
 
-    SDL_Window* window = SDL_CreateWindow("SDL Window", res_x, res_y, width, height,
-                                          SDL_WINDOW_RESIZABLE | SDL_WINDOW_BORDERLESS);
+    SDL_Window* window =
+        SDL_CreateWindow("SDL Window", res_x, res_y, width, height, SDL_WINDOW_BORDERLESS);
+    SDL_bool bordered = SDL_FALSE;
+    SDL_bool resizable = SDL_FALSE;
 
     if (!window) {
         print_in_debug_mode("Failed to create window\n");
@@ -372,6 +375,20 @@ int main(int argc, char* argv[]) {
                         break;
                     case SDLK_a:
                         BgColor.a += 16;
+                        break;
+                    case SDLK_t:
+                        if (bordered == SDL_FALSE) {
+                            bordered = SDL_TRUE;
+                        } else {
+                            bordered = SDL_FALSE;
+                        }
+                        if (resizable == SDL_FALSE) {
+                            resizable = SDL_TRUE;
+                        } else {
+                            resizable = SDL_FALSE;
+                        }
+                        SDL_SetWindowBordered(window, bordered);
+                        SDL_SetWindowResizable(window, resizable);
                         break;
                     }
                 }
