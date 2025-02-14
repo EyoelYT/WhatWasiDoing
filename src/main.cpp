@@ -346,6 +346,10 @@ int main(int argc, char* argv[]) {
                         SDL_SetWindowBordered(window, bordered);
                         SDL_SetWindowResizable(window, resizable);
                         break;
+                    case SDLK_z:
+                        SDL_SetWindowPosition(window, res_x, res_y);
+                        SDL_SetWindowSize(window, width, height);
+                        break;
                     case SDLK_p:
                         if (always_on_top == SDL_FALSE) {
                             always_on_top = SDL_TRUE;
