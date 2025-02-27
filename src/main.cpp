@@ -379,9 +379,9 @@ int main(int argc, char* argv[]) {
                 trim_keyword_prefix(matching_lines[0], keyword);
                 snprintf(first_line_text, sizeof(first_line_text), "%s%s", prefix,
                          matching_lines[0]);
-                text_surface = TTF_RenderText_Solid(font, first_line_text, text_color);
+                text_surface = TTF_RenderText_Blended(font, first_line_text, text_color);
             } else {
-                text_surface = TTF_RenderText_Solid(font, matching_lines[i], text_color);
+                text_surface = TTF_RenderText_Blended(font, matching_lines[i], text_color);
             }
             if (!text_surface) {
                 fprintf(stderr, "Unable to render text! TTF_Error: %s\n", TTF_GetError());
