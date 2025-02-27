@@ -19,13 +19,6 @@
 #define print_in_debug_mode(...) (void(0))
 #endif
 
-#ifdef _WIN32
-#include <windows.h>
-#else
-#include <X11/Xatom.h>
-#include <X11/Xlib.h>
-#endif
-
 struct {
     unsigned char r = 64;
     unsigned char g = 128;
