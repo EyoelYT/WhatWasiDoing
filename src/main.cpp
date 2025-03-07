@@ -96,30 +96,26 @@ char* extract_path(const char* line) {
 FILE* create_demo_config_file(const char* conf_file_path) {
     FILE* file = fopen(conf_file_path, "wb");
     if (!file) {
-        fprintf(stderr, "create_demo_config_file::Couldn't create demo file '%s': %s\n",
-                conf_file_path, strerror(errno));
+        fprintf(stderr, "create_demo_config_file::Couldn't create demo file '%s': %s\n", conf_file_path, strerror(errno));
         return NULL;
     }
 
 #ifdef _WIN32
-    char generated_file_content[] =
-        "files = [\"C:\\Users\\Eyu\\AllMyFilesArch\\org\\agenda2.org\", "
-        "\"C:\\Users\\Eyu\\AllMyFilesArch\\org\\current.org\",]\n";
+    char generated_file_content[] = "files = [\"C:\\Users\\Eyu\\AllMyFilesArch\\org\\agenda2.org\", "
+                                    "\"C:\\Users\\Eyu\\AllMyFilesArch\\org\\current.org\",]\n";
 #else
     char generated_file_content[] = "files = [\"/mnt/c/Users/Eyu/AllMyFilesArch/org/agenda2.org\", "
                                     "\"/mnt/c/Users/Eyu/AllMyFilesArch/org/current.org\",]\n";
 #endif
     int generated_file_content_size = sizeof(generated_file_content);
 
-    fwrite(generated_file_content, sizeof generated_file_content[0], generated_file_content_size,
-           file);
+    fwrite(generated_file_content, sizeof generated_file_content[0], generated_file_content_size, file);
 
     fclose(file);
     return fopen(conf_file_path, "r");
 }
 
-// problem is that after creating the conf file, it does not read the value within the `file`
-// variable scan for
+// problem is that after creating the conf file, it does not read the value within the `file` variable scan for
 int read_config_file(const char* conf_file_path, const int MAX_LINES_IN_FILE, char* lines[]) {
     // Get config file vars
     FILE* file = fopen(conf_file_path, "r");
@@ -156,8 +152,7 @@ int read_config_file(const char* conf_file_path, const int MAX_LINES_IN_FILE, ch
 
         num_lines++;
         if (num_lines >= MAX_LINES_IN_FILE) {
-            print_in_debug_mode("main::Warning: Reached maximum number of lines in file: %d",
-                                MAX_LINES_IN_FILE);
+            print_in_debug_mode("main::Warning: Reached maximum number of lines in file: %d", MAX_LINES_IN_FILE);
             break;
         }
     }
@@ -173,8 +168,7 @@ int read_config_file(const char* conf_file_path, const int MAX_LINES_IN_FILE, ch
     return num_lines;
 }
 
-void get_target_paths(char* extracted_paths[], int* num_extracted_paths,
-                      int num_lines_in_config_file, char* lines[]) {
+void get_target_paths(char* extracted_paths[], int* num_extracted_paths, int num_lines_in_config_file, char* lines[]) {
     for (int i = 0; i < num_lines_in_config_file; ++i) {
         char* path = extract_path(lines[i]);
         if (path) {
@@ -183,8 +177,7 @@ void get_target_paths(char* extracted_paths[], int* num_extracted_paths,
     }
 }
 
-void get_matching_lines_from_targets(char* extracted_paths[], int num_extracted_paths,
-                                     char* matching_lines[], int* matching_lines_count) {
+void get_matching_lines_from_targets(char* extracted_paths[], int num_extracted_paths, char* matching_lines[], int* matching_lines_count) {
     print_in_debug_mode("\nmain::Extracted paths:\n");
     for (int i = 0; i < num_extracted_paths; ++i) {
         print_in_debug_mode("\033[33m%d: %s\033[0m\n", i + 1, extracted_paths[i]);
@@ -200,6 +193,7 @@ void get_matching_lines_from_targets(char* extracted_paths[], int num_extracted_
 int main(int argc, char* argv[]) {
     const char* conf_file_name = "/.currTasks.conf";
     const int MAX_LINES_IN_FILE = 100;
+    const char* title = "WhatWasiDoing";
     char* keyword = (char*)"WAIT";
 
     char* lines[MAX_LINES_IN_FILE]; // array of addresses to beginnings of chars
@@ -229,8 +223,7 @@ int main(int argc, char* argv[]) {
 
     matching_lines = (char**)malloc(100 * sizeof(char*));
     matching_lines_count = 0;
-    get_matching_lines_from_targets(extracted_paths, num_extracted_paths, matching_lines,
-                                    &matching_lines_count);
+    get_matching_lines_from_targets(extracted_paths, num_extracted_paths, matching_lines, &matching_lines_count);
 
     // SDL /////////////////////////////////////////////////////////
     print_in_debug_mode("\nmain::Initializing SDL_ttf\n");
@@ -242,8 +235,7 @@ int main(int argc, char* argv[]) {
 
     print_in_debug_mode("\nmain::Loading font\n");
 #ifdef _WIN32
-    const char* font_path = "C:\\Users\\Eyu\\Projects\\probe\\nerd-fonts\\patched-"
-                            "fonts\\Iosevka\\IosevkaNerdFont-Regular.ttf";
+    const char* font_path = "C:\\Users\\Eyu\\Projects\\probe\\nerd-fonts\\patched-fonts\\Iosevka\\IosevkaNerdFont-Regular.ttf";
 #else
     const char* font_path = "/usr/share/fonts/adobe-source-code-pro/SourceCodePro-Regular.otf";
 #endif
@@ -272,8 +264,8 @@ int main(int argc, char* argv[]) {
     int res_y = mode.h - 50;
     int height = 50;
 
-    SDL_Window* window = SDL_CreateWindow("SDL Window", res_x, res_y, width, height,
-                                          SDL_WINDOW_BORDERLESS | SDL_WINDOW_ALWAYS_ON_TOP);
+    Uint32 sdl_window_flags = SDL_WINDOW_BORDERLESS | SDL_WINDOW_ALWAYS_ON_TOP;
+    SDL_Window* window = SDL_CreateWindow(title, res_x, res_y, width, height, sdl_window_flags);
     SDL_bool bordered = SDL_FALSE;
     SDL_bool resizable = SDL_FALSE;
     SDL_bool always_on_top = SDL_TRUE;
@@ -357,8 +349,7 @@ int main(int argc, char* argv[]) {
         }
 
         SDL_SetRenderDrawColor(renderer, BgColor.r, BgColor.g, BgColor.b, BgColor.a);
-        print_in_debug_mode("BG Colors:\n    r = %u\n    g = %u\n    b = %u\n    a = %u\n",
-                            BgColor.r, BgColor.g, BgColor.b, BgColor.a);
+        print_in_debug_mode("BG Colors:\n\tr = %u\n\tg = %u\n\tb = %u\n\ta = %u\n", BgColor.r, BgColor.g, BgColor.b, BgColor.a);
         SDL_RenderClear(renderer); // Clear the renderer buffer
 
         int y_offset = 0;
@@ -370,8 +361,7 @@ int main(int argc, char* argv[]) {
                 char first_line_text[256];
                 const char* prefix = "Current Task: ";
                 trim_keyword_prefix(matching_lines[0], keyword);
-                snprintf(first_line_text, sizeof(first_line_text), "%s%s", prefix,
-                         matching_lines[0]);
+                snprintf(first_line_text, sizeof(first_line_text), "%s%s", prefix, matching_lines[0]);
                 text_surface = TTF_RenderText_Blended(font, first_line_text, text_color);
             } else {
                 text_surface = TTF_RenderText_Blended(font, matching_lines[i], text_color);
@@ -401,8 +391,7 @@ int main(int argc, char* argv[]) {
         SDL_Delay(256);
 
         matching_lines_count = 0;
-        get_matching_lines_from_targets(extracted_paths, num_extracted_paths, matching_lines,
-                                        &matching_lines_count);
+        get_matching_lines_from_targets(extracted_paths, num_extracted_paths, matching_lines, &matching_lines_count);
     }
 
     print_in_debug_mode("\nmain::Destroying Renderer\n");
