@@ -101,11 +101,11 @@ FILE* create_demo_config_file(const char* conf_file_path) {
     }
 
 #ifdef _WIN32
-    char generated_file_content[] = "files = [\"C:\\Users\\Eyu\\AllMyFilesArch\\org\\agenda2.org\", "
-                                    "\"C:\\Users\\Eyu\\AllMyFilesArch\\org\\current.org\",]\n";
+    char generated_file_content[] = "files =[\n\"C:\\Users\\Eyu\\AllMyFilesArch\\org\\agenda2.org\", \n"
+                                    "\"C:\\Users\\Eyu\\AllMyFilesArch\\org\\current.org\",\n]\n";
 #else
-    char generated_file_content[] = "files = [\"/mnt/c/Users/Eyu/AllMyFilesArch/org/agenda2.org\", "
-                                    "\"/mnt/c/Users/Eyu/AllMyFilesArch/org/current.org\",]\n";
+    char generated_file_content[] = "files = [\n\"/mnt/c/Users/Eyu/AllMyFilesArch/org/agenda2.org\", \n"
+                                    "\"/mnt/c/Users/Eyu/AllMyFilesArch/org/current.org\",\n]\n";
 #endif
     int generated_file_content_size = sizeof(generated_file_content);
 
