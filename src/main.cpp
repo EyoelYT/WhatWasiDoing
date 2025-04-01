@@ -318,6 +318,11 @@ int main(int argc, char* argv[]) {
                         BgColor.a += 16;
                         break;
                     case SDLK_t:
+                        // store current size and position
+                        int current_width, current_height, current_x, current_y;
+                        SDL_GetWindowSize(window, &current_width, &current_height);
+                        SDL_GetWindowPosition(window, &current_x, &current_y);
+
                         if (bordered == SDL_FALSE) {
                             bordered = SDL_TRUE;
                         } else {
@@ -328,8 +333,12 @@ int main(int argc, char* argv[]) {
                         } else {
                             resizable = SDL_FALSE;
                         }
+
                         SDL_SetWindowBordered(window, bordered);
                         SDL_SetWindowResizable(window, resizable);
+                        // restore window from stored size and position to compensate for wierd SDL behavior
+                        SDL_SetWindowSize(window, current_width, current_height);
+                        SDL_SetWindowPosition(window, current_x, current_y);
                         break;
                     case SDLK_z:
                         SDL_SetWindowPosition(window, res_x, res_y);
