@@ -381,18 +381,20 @@ int main(int argc, char* argv[]) {
             }
 
             SDL_Texture* text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
+            int w = text_surface->w;
+            int h = text_surface->h;
             SDL_FreeSurface(text_surface); // No longer needed
             if (!text_texture) {
                 fprintf(stderr, "Failed to create texture! SDL_Error: %s\n", SDL_GetError());
                 continue;
             }
 
-            SDL_Rect src_rect = {0, 0, text_surface->w, text_surface->h};
-            SDL_Rect dst_rect = {0, y_offset, text_surface->w, text_surface->h};
+            SDL_Rect src_rect = {0, 0, w, h};
+            SDL_Rect dst_rect = {0, y_offset, w, h};
             SDL_RenderCopy(renderer, text_texture, &src_rect, &dst_rect);
             SDL_DestroyTexture(text_texture);
 
-            y_offset += text_surface->h;
+            y_offset += h;
         }
         SDL_RenderPresent(renderer); // Update screen
 
