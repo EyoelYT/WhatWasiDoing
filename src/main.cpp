@@ -204,7 +204,7 @@ int main(int argc, char* argv[]) {
     char* extracted_paths[MAX_LINES_IN_FILE];
     int num_extracted_paths;
 
-    char** matching_lines;
+    char* matching_lines[150];
     int matching_lines_count;
 
     // Get the user's home dir
@@ -221,7 +221,6 @@ int main(int argc, char* argv[]) {
     num_extracted_paths = 0;
     get_target_paths(extracted_paths, &num_extracted_paths, num_lines_in_config_file, lines);
 
-    matching_lines = (char**)malloc(100 * sizeof(char*));
     matching_lines_count = 0;
     get_matching_lines_from_targets(extracted_paths, num_extracted_paths, matching_lines, &matching_lines_count);
 
@@ -400,6 +399,10 @@ int main(int argc, char* argv[]) {
 
         // SDL_Delay(1000);
         SDL_Delay(256);
+
+        for (int i = 0; i < matching_lines_count; i++) {
+            free(matching_lines[i]);
+        }
 
         matching_lines_count = 0;
         get_matching_lines_from_targets(extracted_paths, num_extracted_paths, matching_lines, &matching_lines_count);
