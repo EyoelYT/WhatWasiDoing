@@ -21,7 +21,7 @@ ifeq ($(OS),Windows_NT)
 else
     # [-DDEBUG_MODE]
     CXXFLAGS := -O0 -Wall -Wextra
-    LIBS     := $(SDL_LIBS) -lX11
+    LIBS     := $(SDL_LIBS)
 endif
 
 .PHONY: all clean
