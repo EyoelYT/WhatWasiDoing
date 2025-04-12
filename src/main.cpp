@@ -11,7 +11,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+
+#define MAX_PATHS 90
+#define MAX_KEYWORDS 10
+#define MAX_LINES_IN_CONFIG_FILE 100
+#define MAX_CONFIG_FILE_PATH_STRLEN 256
+#define MATCHING_LINES_CAP 150
 
 #ifdef DEBUG_MODE
 #define print_in_debug_mode(...) printf(__VA_ARGS__)
@@ -26,7 +31,7 @@ struct {
     unsigned char a = 240;
 } BgColor;
 
-void read_waits_from_targets(char* path, char* matching_lines[], int* curr_line_in_matching_lines) {
+void read_keyword_lines_from_targets(char* path, char* matching_lines[], int* curr_line_in_matching_lines, char* keywords[]) {
     void* file_content = SDL_LoadFile(path, NULL);
 
     if (!file_content) {
@@ -37,12 +42,16 @@ void read_waits_from_targets(char* path, char* matching_lines[], int* curr_line_
 
     char* line = strtok((char*)file_content, "\n");
 
-    // Search for "WAIT" in each line
-    while (line != NULL) {
-        if (strstr(line, "WAIT")) {
-            matching_lines[*curr_line_in_matching_lines] = strdup(line);
-            (*curr_line_in_matching_lines)++;
-            print_in_debug_mode("\nreadWaits::MATCHING WAITS:\n%s\n", line);
+    // Search for the keywords in each line
+    while (line != NULL && *curr_line_in_matching_lines < MATCHING_LINES_CAP) {
+        for (int i = 0; i < MAX_KEYWORDS; i++) {
+            if (keywords[i] != NULL) {
+                if (strstr(line, keywords[i])) {
+                    matching_lines[*curr_line_in_matching_lines] = strdup(line);
+                    (*curr_line_in_matching_lines)++;
+                    print_in_debug_mode("\nreadWaits::MATCHING WAITS:\n%s\n", line);
+                }
+            }
         }
         line = strtok(NULL, "\n");
     }
@@ -101,11 +110,11 @@ FILE* create_demo_config_file(const char* conf_file_path) {
     }
 
 #ifdef _WIN32
-    char generated_file_content[] = "files =[\n\"C:\\Users\\Eyu\\AllMyFilesArch\\org\\agenda2.org\", \n"
-                                    "\"C:\\Users\\Eyu\\AllMyFilesArch\\org\\current.org\",\n]\n";
+    char generated_file_content[] = "file = \"C:\\Users\\USER\\todos.org\"\n"
+                                    "keyword = \"TODO\"\n";
 #else
-    char generated_file_content[] = "files = [\n\"/mnt/c/Users/Eyu/AllMyFilesArch/org/agenda2.org\", \n"
-                                    "\"/mnt/c/Users/Eyu/AllMyFilesArch/org/current.org\",\n]\n";
+    char generated_file_content[] = "file = \"/home/USER/todos.org\"\n"
+                                    "keyword = \"TODO\"\n";
 #endif
     int generated_file_content_size = sizeof(generated_file_content);
 
@@ -116,7 +125,7 @@ FILE* create_demo_config_file(const char* conf_file_path) {
 }
 
 // problem is that after creating the conf file, it does not read the value within the `file` variable scan for
-int read_config_file(const char* conf_file_path, const int MAX_LINES_IN_FILE, char* lines[]) {
+int read_config_file(const char* conf_file_path, char* lines[]) {
     // Get config file vars
     FILE* file = fopen(conf_file_path, "r");
     if (!file) {
@@ -151,14 +160,14 @@ int read_config_file(const char* conf_file_path, const int MAX_LINES_IN_FILE, ch
         }
 
         num_lines++;
-        if (num_lines >= MAX_LINES_IN_FILE) {
-            print_in_debug_mode("main::Warning: Reached maximum number of lines in file: %d", MAX_LINES_IN_FILE);
+        if (num_lines >= MAX_LINES_IN_CONFIG_FILE) {
+            print_in_debug_mode("main::Warning: Reached maximum number of lines in file: %d", MAX_LINES_IN_CONFIG_FILE);
             break;
         }
     }
 
     // Show the lines that are read
-    print_in_debug_mode("main::Lines read from %s:\n", conf_file_path);
+    print_in_debug_mode("\nmain::Lines read from %s:\n", conf_file_path);
     for (int i = 0; i < num_lines; ++i) {
         print_in_debug_mode("%d: %s\n", i + 1, lines[i]);
     }
@@ -168,20 +177,45 @@ int read_config_file(const char* conf_file_path, const int MAX_LINES_IN_FILE, ch
     return num_lines;
 }
 
-void get_target_paths(char* extracted_paths[], int* num_extracted_paths, int num_lines_in_config_file, char* lines[]) {
-    for (int i = 0; i < num_lines_in_config_file; ++i) {
-        char* path = extract_path(lines[i]);
-        if (path) {
-            extracted_paths[(*num_extracted_paths)++] = path;
+void extract_values_to_array(char* source_array[], size_t source_array_len, char* key, char* destination_array[], size_t destination_array_len) {
+
+    char buf[256];
+    size_t j = 0; // j points into the destination array
+    for (size_t i = 0; i < source_array_len; i++) {
+        char* start = strchr(source_array[i], '"'); // first quote
+        if (!start)
+            continue;
+        start++;                        // skip the quote
+        char* end = strchr(start, '"'); // matching second quote
+        if (!end)
+            continue;
+
+        size_t len = end - start;
+        strncpy(buf, start, len); // copy string from 'start' to 'end' into buf
+        buf[len] = '\0';
+
+        // copy the substring within quotes into the destination array
+        if (j < destination_array_len) {
+            if (strstr(source_array[i], key) != NULL) {
+                char* str = strdup(buf);
+                destination_array[j] = str;
+            }
+            j++;
         }
     }
 }
 
-void get_matching_lines_from_targets(char* extracted_paths[], int num_extracted_paths, char* matching_lines[], int* matching_lines_count) {
+// fill out 'extracted_paths' and 'keywords', from 'lines' in config file
+void decipher_config_file(char** lines, size_t lines_len, char** extracted_paths, size_t extracted_paths_len, char** keywords, size_t keywords_len) {
+    extract_values_to_array(lines, lines_len, (char*)"keyword", keywords, keywords_len);
+    extract_values_to_array(lines, lines_len, (char*)"file", extracted_paths, extracted_paths_len);
+}
+
+void get_matching_lines_from_targets(char* extracted_paths[], char* matching_lines[], int* matching_lines_count, char* keywords[]) {
     print_in_debug_mode("\nmain::Extracted paths:\n");
-    for (int i = 0; i < num_extracted_paths; ++i) {
+    for (int i = 0; i < MAX_PATHS && extracted_paths[i] != NULL; i++) {
         print_in_debug_mode("\033[33m%d: %s\033[0m\n", i + 1, extracted_paths[i]);
-        read_waits_from_targets(extracted_paths[i], matching_lines, matching_lines_count);
+        read_keyword_lines_from_targets(extracted_paths[i], matching_lines, matching_lines_count, keywords);
     }
     print_in_debug_mode("\nmain::Matches found: %d\n", *matching_lines_count);
 
@@ -192,19 +226,17 @@ void get_matching_lines_from_targets(char* extracted_paths[], int num_extracted_
 
 int main(int argc, char* argv[]) {
     const char* conf_file_name = "/.currTasks.conf";
-    const int MAX_LINES_IN_FILE = 100;
     const char* title = "WhatWasiDoing";
-    char* keyword = (char*)"WAIT";
+    char* keywords[MAX_KEYWORDS] = {NULL};
 
-    char* lines[MAX_LINES_IN_FILE]; // array of addresses to beginnings of chars
+    char* config_file_lines[MAX_LINES_IN_CONFIG_FILE];
 
-    char conf_file_path[1024];
+    char conf_file_path[MAX_CONFIG_FILE_PATH_STRLEN];
     int num_lines_in_config_file;
 
-    char* extracted_paths[MAX_LINES_IN_FILE];
-    int num_extracted_paths;
+    char* extracted_paths[MAX_LINES_IN_CONFIG_FILE] = {NULL};
 
-    char* matching_lines[150];
+    char* matching_lines[MATCHING_LINES_CAP];
     int matching_lines_count;
 
     // Get the user's home dir
@@ -215,14 +247,13 @@ int main(int argc, char* argv[]) {
     }
     // Get the full file path to the config file (join the strings)
     snprintf(conf_file_path, sizeof(conf_file_path), "%s%s", home_dir, conf_file_name);
-    num_lines_in_config_file = read_config_file(conf_file_path, MAX_LINES_IN_FILE, lines);
+    num_lines_in_config_file = read_config_file(conf_file_path, config_file_lines);
 
     // extract the path strings from all the lines
-    num_extracted_paths = 0;
-    get_target_paths(extracted_paths, &num_extracted_paths, num_lines_in_config_file, lines);
+    decipher_config_file(config_file_lines, num_lines_in_config_file, extracted_paths, MAX_PATHS, keywords, MAX_KEYWORDS);
 
     matching_lines_count = 0;
-    get_matching_lines_from_targets(extracted_paths, num_extracted_paths, matching_lines, &matching_lines_count);
+    get_matching_lines_from_targets(extracted_paths, matching_lines, &matching_lines_count, keywords);
 
     // SDL /////////////////////////////////////////////////////////
     print_in_debug_mode("\nmain::Initializing SDL_ttf\n");
@@ -368,7 +399,13 @@ int main(int argc, char* argv[]) {
             if (i == 0) {
                 char first_line_text[256];
                 const char* prefix = "Current Task: ";
-                trim_keyword_prefix(matching_lines[0], keyword);
+
+                // trim out the keywords
+                for (int i = 0; i < MAX_KEYWORDS; i++) {
+                    if (keywords[i] != NULL) {
+                        trim_keyword_prefix(matching_lines[0], keywords[i]);
+                    }
+                }
                 snprintf(first_line_text, sizeof(first_line_text), "%s%s", prefix, matching_lines[0]);
                 text_surface = TTF_RenderText_Blended(font, first_line_text, text_color);
             } else {
@@ -405,24 +442,34 @@ int main(int argc, char* argv[]) {
         }
 
         matching_lines_count = 0;
-        get_matching_lines_from_targets(extracted_paths, num_extracted_paths, matching_lines, &matching_lines_count);
+        get_matching_lines_from_targets(extracted_paths, matching_lines, &matching_lines_count, keywords);
     }
 
     print_in_debug_mode("\nmain::Destroying Renderer\n");
     SDL_DestroyRenderer(renderer);
+
     print_in_debug_mode("\nmain::Destroying Window\n");
     SDL_DestroyWindow(window);
+
     print_in_debug_mode("\nmain::Closing SDL_ttf\n");
     TTF_CloseFont(font);
     TTF_Quit();
+
     print_in_debug_mode("\nmain::Quitting SDL\n");
     SDL_Quit();
 
-    // free the allocated memory (the array if char*)
     for (int i = 0; i < num_lines_in_config_file; ++i) {
-        free(lines[i]);
+        free(matching_lines[i]);
     }
-    free(matching_lines);
+
+    for (int i = 0; i < MAX_PATHS && extracted_paths[i] != NULL; i++) {
+        free(extracted_paths[i]);
+    }
+
+    for (int i = 0; i < MAX_KEYWORDS && keywords[i] != NULL; i++) {
+        free(keywords[i]);
+    }
+
     print_in_debug_mode("\nmain::Exit\n");
     return 0;
 }
