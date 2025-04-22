@@ -9,3 +9,7 @@ Language: Cpp
 
 DerivePointerAlignment: false
 PointerAlignment: Left
+
+AlignEscapedNewlines: LeftWithLastLine
+IndentPPDirectives: BeforeHash
+PPIndentWidth: 4

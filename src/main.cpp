@@ -19,9 +19,9 @@
 #define MATCHING_LINES_CAP 150
 
 #ifdef DEBUG_MODE
-#define debug_p(...) printf(__VA_ARGS__)
+    #define debug_p(...) printf(__VA_ARGS__)
 #else
-#define debug_p(...) (void(0))
+    #define debug_p(...) (void(0))
 #endif
 
 typedef struct {
