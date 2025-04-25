@@ -17,6 +17,7 @@
 #define MAX_LINES_IN_CONFIG_FILE 100
 #define MAX_MATCHING_LINES_CAP 150
 #define MAX_STRING_LENGTH_CAP 512
+#define SINGLE 1
 
 #ifdef DEBUG_MODE
     #define debug_p(...) printf(__VA_ARGS__)
@@ -177,6 +178,18 @@ size_t extract_config_file_values(char* key, char** destination_array, size_t de
     return num_keys;
 }
 
+int get_single_user_value_or_default(char** user_value, size_t num_user_value, int default_user_value) {
+    if (num_user_value < 1 || !isdigit(user_value[0][0])) {
+        return default_user_value;
+    } else {
+        return atoi(user_value[0]);
+    }
+}
+
+int centered_window_x_position(int user_screen_width, int window_width) {
+    return (user_screen_width / 2) - (window_width / 2);
+}
+
 int main(int argc, char* argv[]) {
 
     char* keywords[MAX_KEYWORDS];
@@ -199,11 +212,36 @@ int main(int argc, char* argv[]) {
         matching_lines[i] = (char*)malloc(MAX_STRING_LENGTH_CAP);
     }
 
+    char* window_height_arr[SINGLE];
+    for (size_t i = 0; i < SINGLE; i++) {
+        window_height_arr[i] = (char*)malloc(MAX_STRING_LENGTH_CAP);
+    }
+
+    char* window_width_arr[SINGLE];
+    for (size_t i = 0; i < SINGLE; i++) {
+        window_width_arr[i] = (char*)malloc(MAX_STRING_LENGTH_CAP);
+    }
+
+    char* window_x_arr[SINGLE];
+    for (size_t i = 0; i < SINGLE; i++) {
+        window_x_arr[i] = (char*)malloc(MAX_STRING_LENGTH_CAP);
+    }
+
+    char* window_y_arr[SINGLE];
+    for (size_t i = 0; i < SINGLE; i++) {
+        window_y_arr[i] = (char*)malloc(MAX_STRING_LENGTH_CAP);
+    }
+
     Color bg_color = {24, 128, 64, 240};
     size_t num_keywords;
     size_t num_extracted_paths;
     size_t num_lines_in_config_file;
     size_t curr_line_in_matching_lines;
+    size_t num_window_height;
+    size_t num_window_width;
+    size_t num_window_x;
+    size_t num_window_y;
+
     char conf_file_path[MAX_STRING_LENGTH_CAP];
     const char* title = "WhatWasiDoing";
 #ifdef _WIN32
@@ -223,7 +261,11 @@ int main(int argc, char* argv[]) {
     num_lines_in_config_file = read_config_file(conf_file_path, config_file_lines);
 
     num_extracted_paths = extract_config_file_values((char*)"file", extracted_paths, MAX_EXTRACTED_PATHS, config_file_lines, num_lines_in_config_file);
-    num_keywords = extract_config_file_values((char*)"keyword", keywords, MAX_KEYWORDS, config_file_lines, num_lines_in_config_file);
+    num_keywords        = extract_config_file_values((char*)"keyword", keywords, MAX_KEYWORDS, config_file_lines, num_lines_in_config_file);
+    num_window_x        = extract_config_file_values((char*)"initial_window_x", window_x_arr, SINGLE, config_file_lines, num_lines_in_config_file);
+    num_window_y        = extract_config_file_values((char*)"initial_window_y", window_y_arr, SINGLE, config_file_lines, num_lines_in_config_file);
+    num_window_width    = extract_config_file_values((char*)"initial_window_width", window_width_arr, SINGLE, config_file_lines, num_lines_in_config_file);
+    num_window_height   = extract_config_file_values((char*)"initial_window_height", window_height_arr, SINGLE, config_file_lines, num_lines_in_config_file);
 
     curr_line_in_matching_lines = 0;
     for (size_t i = 0; i < num_extracted_paths; i++) {
@@ -261,17 +303,24 @@ int main(int argc, char* argv[]) {
     }
 
     int displayIndex = 0;
-    SDL_DisplayMode mode;
-    SDL_GetDesktopDisplayMode(displayIndex, &mode);
+    SDL_DisplayMode user_display_info;
+    SDL_GetDesktopDisplayMode(displayIndex, &user_display_info);
 
-    int res_x = 10;
-    int width = mode.w - 60;
+    const int default_window_width = user_display_info.w - 60;
+    const int default_window_height = 50;
+    const int default_window_x_position = (user_display_info.w / 2) - (default_window_width / 2); // center - half-width
+    const int default_window_y_position = user_display_info.h - default_window_height;
 
-    int res_y = mode.h - 50;
-    int height = 50;
+    int official_window_width  = get_single_user_value_or_default(window_width_arr, num_window_width, default_window_width);
+    int official_window_height = get_single_user_value_or_default(window_height_arr, num_window_height, default_window_height); // height downwards
+    int window_position_x      = get_single_user_value_or_default(window_x_arr, num_window_x, default_window_x_position); // left border position
+    int window_position_y      = get_single_user_value_or_default(window_y_arr, num_window_y, default_window_y_position); // top border position
+
+    // Adjust centering after receiving the user's desired width; TODO: make it the user's option
+    window_position_x = centered_window_x_position(user_display_info.w, official_window_width);
 
     Uint32 sdl_window_flags = SDL_WINDOW_BORDERLESS | SDL_WINDOW_ALWAYS_ON_TOP;
-    SDL_Window* window = SDL_CreateWindow(title, res_x, res_y, width, height, sdl_window_flags);
+    SDL_Window* window = SDL_CreateWindow(title, window_position_x, window_position_y, official_window_width, official_window_height, sdl_window_flags);
     SDL_bool bordered = SDL_FALSE;
     SDL_bool resizable = SDL_FALSE;
     SDL_bool always_on_top = SDL_TRUE;
@@ -347,8 +396,8 @@ int main(int argc, char* argv[]) {
                         SDL_SetWindowPosition(window, current_x, current_y);
                         break;
                     case SDLK_z:
-                        SDL_SetWindowPosition(window, res_x, res_y);
-                        SDL_SetWindowSize(window, width, height);
+                        SDL_SetWindowPosition(window, window_position_x, window_position_y);
+                        SDL_SetWindowSize(window, official_window_width, official_window_height);
                         break;
                     case SDLK_p:
                         if (always_on_top == SDL_FALSE) {
