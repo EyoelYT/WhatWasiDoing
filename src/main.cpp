@@ -57,7 +57,7 @@ void read_keyword_lines_from_filepath(char* path, char** matching_lines, size_t*
     SDL_free(file_content);
 }
 
-void trim_keyword_prefix(char* line, char* keyword) {
+void prefix_keyword_trimout(char* line, char* keyword) {
     if (!line)
         return;
 
@@ -414,49 +414,62 @@ int main(int argc, char* argv[]) {
 
         SDL_SetRenderDrawColor(renderer, bg_color.r, bg_color.g, bg_color.b, bg_color.a);
         debug_p("BG Colors:\n\tr = %u\n\tg = %u\n\tb = %u\n\ta = %u\n", bg_color.r, bg_color.g, bg_color.b, bg_color.a);
-        SDL_RenderClear(renderer); // Clear the renderer buffer
+        SDL_RenderClear(renderer);
 
         int y_offset = 0;
+
+        if (curr_line_in_matching_lines == 0) {
+            char* text_none = "NONE";
+            SDL_Color text_color = {255, 255, 255, 255};
+            SDL_Surface* text_surface = TTF_RenderText_Blended(font, text_none, text_color);
+            SDL_Texture* text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
+            SDL_Rect src_rect = {0, 0, text_surface->w, text_surface->h};
+            SDL_Rect dst_rect = {(official_window_width / 2) - (int)(official_window_width / 2.5), y_offset, text_surface->w, text_surface->h};
+            SDL_RenderCopy(renderer, text_texture, &src_rect, &dst_rect);
+            SDL_FreeSurface(text_surface);
+            SDL_DestroyTexture(text_texture);
+        }
         for (size_t i = 0; i < curr_line_in_matching_lines; i++) {
 
             SDL_Color text_color = {255, 255, 255, 255};
             SDL_Surface* text_surface;
+
             if (i == 0) {
                 char first_line_text[256];
                 const char* prefix = "Current Task: ";
 
                 // trim out the keywords
                 for (size_t i = 0; i < num_keywords; i++) {
-                    trim_keyword_prefix(matching_lines[0], keywords[i]);
+                    prefix_keyword_trimout(matching_lines[0], keywords[i]);
                 }
                 snprintf(first_line_text, sizeof(first_line_text), "%s%s", prefix, matching_lines[0]);
                 text_surface = TTF_RenderText_Blended(font, first_line_text, text_color);
             } else {
                 text_surface = TTF_RenderText_Blended(font, matching_lines[i], text_color);
             }
+
             if (!text_surface) {
                 fprintf(stderr, "Unable to render text! TTF_Error: %s\n", TTF_GetError());
                 continue;
             }
 
             SDL_Texture* text_texture = SDL_CreateTextureFromSurface(renderer, text_surface);
-            int w = text_surface->w;
-            int h = text_surface->h;
-            SDL_FreeSurface(text_surface); // No longer needed
             if (!text_texture) {
                 fprintf(stderr, "Failed to create texture! SDL_Error: %s\n", SDL_GetError());
                 continue;
             }
 
-            SDL_Rect src_rect = {0, 0, w, h};
-            SDL_Rect dst_rect = {0, y_offset, w, h};
+            SDL_Rect src_rect = {0, 0, text_surface->w, text_surface->h};
+            SDL_Rect dst_rect = {0, y_offset, text_surface->w, text_surface->h};
             SDL_RenderCopy(renderer, text_texture, &src_rect, &dst_rect);
+
+            y_offset += text_surface->h;
+
+            SDL_FreeSurface(text_surface);
             SDL_DestroyTexture(text_texture);
-
-            y_offset += h;
         }
-        SDL_RenderPresent(renderer); // Update screen
 
+        SDL_RenderPresent(renderer);
         SDL_Delay(256);
 
         curr_line_in_matching_lines = 0;
