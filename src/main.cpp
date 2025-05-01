@@ -194,47 +194,37 @@ int centered_window_x_position(int user_screen_width, int window_width) {
     return (user_screen_width / 2) - (window_width / 2);
 }
 
+void initialize_string_array(char** array, size_t array_max_size, size_t max_strlen) {
+    for (size_t i = 0; i < array_max_size; i++) {
+        array[i] = (char*)malloc(max_strlen);
+    }
+}
+
+void destroy_string_array(char** array, size_t array_max_size) {
+    for (size_t i = 0; i < array_max_size; i++) {
+        free(array[i]);
+    }
+}
+
 int main(int argc, char* argv[]) {
 
     char* keywords_array[MAX_KEYWORDS];
-    for (size_t i = 0; i < MAX_KEYWORDS; i++) {
-        keywords_array[i] = (char*)malloc(MAX_STRING_LENGTH_CAPACITY);
-    }
-
     char* target_paths_array[MAX_TARGET_PATHS];
-    for (size_t i = 0; i < MAX_TARGET_PATHS; i++) {
-        target_paths_array[i] = (char*)malloc(MAX_STRING_LENGTH_CAPACITY);
-    }
-
     char* conf_file_lines_array[MAX_LINES_IN_CONFIG_FILE];
-    for (size_t i = 0; i < MAX_LINES_IN_CONFIG_FILE; i++) {
-        conf_file_lines_array[i] = (char*)malloc(MAX_STRING_LENGTH_CAPACITY);
-    }
-
     char* matching_lines_array[MAX_MATCHING_LINES_CAPACITY];
-    for (size_t i = 0; i < MAX_MATCHING_LINES_CAPACITY; i++) {
-        matching_lines_array[i] = (char*)malloc(MAX_STRING_LENGTH_CAPACITY);
-    }
-
     char* window_height_array[SINGLE_CONFIG_VALUE_SIZE];
-    for (size_t i = 0; i < SINGLE_CONFIG_VALUE_SIZE; i++) {
-        window_height_array[i] = (char*)malloc(MAX_STRING_LENGTH_CAPACITY);
-    }
-
     char* window_width_array[SINGLE_CONFIG_VALUE_SIZE];
-    for (size_t i = 0; i < SINGLE_CONFIG_VALUE_SIZE; i++) {
-        window_width_array[i] = (char*)malloc(MAX_STRING_LENGTH_CAPACITY);
-    }
-
     char* window_x_position_array[SINGLE_CONFIG_VALUE_SIZE];
-    for (size_t i = 0; i < SINGLE_CONFIG_VALUE_SIZE; i++) {
-        window_x_position_array[i] = (char*)malloc(MAX_STRING_LENGTH_CAPACITY);
-    }
-
     char* window_y_position_array[SINGLE_CONFIG_VALUE_SIZE];
-    for (size_t i = 0; i < SINGLE_CONFIG_VALUE_SIZE; i++) {
-        window_y_position_array[i] = (char*)malloc(MAX_STRING_LENGTH_CAPACITY);
-    }
+
+    initialize_string_array(keywords_array, MAX_KEYWORDS, MAX_STRING_LENGTH_CAPACITY);
+    initialize_string_array(target_paths_array, MAX_TARGET_PATHS, MAX_STRING_LENGTH_CAPACITY);
+    initialize_string_array(conf_file_lines_array, MAX_LINES_IN_CONFIG_FILE, MAX_STRING_LENGTH_CAPACITY);
+    initialize_string_array(matching_lines_array, MAX_MATCHING_LINES_CAPACITY, MAX_STRING_LENGTH_CAPACITY);
+    initialize_string_array(window_height_array, SINGLE_CONFIG_VALUE_SIZE, MAX_STRING_LENGTH_CAPACITY);
+    initialize_string_array(window_width_array, SINGLE_CONFIG_VALUE_SIZE, MAX_STRING_LENGTH_CAPACITY);
+    initialize_string_array(window_x_position_array, SINGLE_CONFIG_VALUE_SIZE, MAX_STRING_LENGTH_CAPACITY);
+    initialize_string_array(window_y_position_array, SINGLE_CONFIG_VALUE_SIZE, MAX_STRING_LENGTH_CAPACITY);
 
     SDL_Color bg_color = {24, 128, 64, 240};
     size_t keywords_count;
@@ -514,38 +504,16 @@ int main(int argc, char* argv[]) {
     debug_show_loc("Quitting SDL\n");
     SDL_Quit();
 
-    for (size_t i = 0; i < conf_file_line_count; i++) {
-        free(conf_file_lines_array[i]);
-    }
-
-    for (size_t i = 0; i < conf_file_line_count; i++) {
-        free(matching_lines_array[i]);
-    }
-
-    for (size_t i = 0; i < target_paths_count; i++) {
-        free(target_paths_array[i]);
-    }
-
-    for (size_t i = 0; i < keywords_count; i++) {
-        free(keywords_array[i]);
-    }
-
-    for (size_t i = 0; i < window_height_count; i++) {
-        free(window_height_array[i]);
-    }
-
-    for (size_t i = 0; i < window_width_count; i++) {
-        free(window_width_array[i]);
-    }
-
-    for (size_t i = 0; i < window_x_position_count; i++) {
-        free(window_x_position_array[i]);
-    }
-
-    for (size_t i = 0; i < window_y_position_count; i++) {
-        free(window_y_position_array[i]);
-    }
+    destroy_string_array(conf_file_lines_array, conf_file_line_count);
+    destroy_string_array(matching_lines_array, conf_file_line_count);
+    destroy_string_array(target_paths_array, target_paths_count);
+    destroy_string_array(keywords_array, keywords_count);
+    destroy_string_array(window_height_array, window_height_count);
+    destroy_string_array(window_width_array, window_width_count);
+    destroy_string_array(window_x_position_array, window_x_position_count);
+    destroy_string_array(window_y_position_array, window_y_position_count);
 
     debug_show_loc("Exiting Application\n");
+
     return 0;
 }
