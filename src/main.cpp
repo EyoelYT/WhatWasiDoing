@@ -22,29 +22,33 @@
 #define SINGLE_CONFIG_VALUE_SIZE 1
 
 #ifdef DEBUG_MODE
-    #define debug_p(...) printf(__VA_ARGS__)
+    #define debug_show_loc(fmt, ...) fprintf(stdout, "\n%s:%d: %s():\n" fmt, __FILE__, __LINE__, __func__, ##__VA_ARGS__)
+    #define debug_printf(...) printf(__VA_ARGS__)
 #else
-    #define debug_p(...) ((void)0)
+    #define debug_show_loc(...) ((void)0)
+    #define debug_printf(...) ((void)0)
 #endif
 
 void keyword_lines_into_array(char* file_path, char** destination_array, size_t* destination_array_index, size_t destination_array_max_capacity, char** keywords_source_array, size_t keywords_source_count) {
     void* file_content = SDL_LoadFile(file_path, NULL);
 
     if (!file_content) {
-        debug_p("readWaits::Error loading file: %s\n", SDL_GetError());
-        debug_p("readWaits::file_content: %s\n", (char*)file_content);
+        debug_show_loc("Unable to load file: %s\nProbably doesn't exist\n", file_path);
+        debug_printf("SDL Error: %s\n", SDL_GetError());
+        debug_printf("file_content = %s\n", (char*)file_content);
         return;
     }
 
     char* file_content_line = strtok((char*)file_content, "\n");
 
     // Search for the keywords in each line
+    debug_show_loc("Matching lines:\n");
     while (file_content_line != NULL && *destination_array_index < destination_array_max_capacity) {
         for (size_t i = 0; i < keywords_source_count; i++) {
             if (strstr(file_content_line, keywords_source_array[i])) {
                 strcpy(destination_array[*destination_array_index], file_content_line);
                 (*destination_array_index)++;
-                debug_p("\nreadWaits::MATCHING WAITS:\n%s\n", file_content_line);
+                debug_printf("%s\n", file_content_line);
             }
         }
         file_content_line = strtok(NULL, "\n");
@@ -78,7 +82,7 @@ void trim_keyword_prefix(char* text_line, char* keyword) {
 FILE* create_demo_conf_file(const char* conf_file_path) {
     FILE* file = fopen(conf_file_path, "wb");
     if (!file) {
-        fprintf(stderr, "create_demo_config_file::Couldn't create demo file '%s': %s\n", conf_file_path, strerror(errno));
+        debug_show_loc("Couldn't create demo file '%s': %s\n", conf_file_path, strerror(errno));
         return NULL;
     }
 
@@ -101,11 +105,11 @@ int conf_file_lines_into_array(const char* file_path, char** file_lines_array) {
     // Get config file vars
     FILE* file = fopen(file_path, "r");
     if (!file) {
-        debug_p("read_config_file::File doesn't exist. Creating demo file.");
-        debug_p("'%s' not found\n", file_path);
+        debug_show_loc("File doesn't exist. Creating demo file.\n");
+        debug_printf("'%s' not found\n", file_path);
         file = create_demo_conf_file(file_path);
         if (!file) {
-            perror("read_config_file::Unable to create file");
+            debug_show_loc("Unable to create file\n");
             exit(1);
         }
     }
@@ -127,15 +131,15 @@ int conf_file_lines_into_array(const char* file_path, char** file_lines_array) {
         curr_line++;
 
         if (curr_line >= MAX_LINES_IN_CONFIG_FILE) {
-            debug_p("main::Warning: Reached maximum number of lines in file: %zu", MAX_LINES_IN_CONFIG_FILE);
+            debug_show_loc("Warning: Reached maximum number of lines in file: %d\n", MAX_LINES_IN_CONFIG_FILE);
             break;
         }
     }
 
     // Show the lines that are read
-    debug_p("\nmain::Lines read from %s:\n", file_path);
+    debug_show_loc("Lines read from %s:\n", file_path);
     for (size_t i = 0; i < curr_line; i++) {
-        debug_p("%zu: %s\n", i + 1, file_lines_array[i]);
+        debug_printf("%s:%zu: line read: %s\n", file_path, i + 1, file_lines_array[i]);
     }
 
     fclose(file);
@@ -253,7 +257,7 @@ int main(int argc, char* argv[]) {
     // Get the user's home dir
     const char* user_env_home = getenv("HOME");
     if (!user_env_home) {
-        perror("main::Error getting home directory");
+        perror("Error getting home directory");
         return 1;
     }
     // Get the full file path to the config file (join the strings)
@@ -267,21 +271,22 @@ int main(int argc, char* argv[]) {
     window_width_count = extract_config_values((char*)"initial_window_width", window_width_array, SINGLE_CONFIG_VALUE_SIZE, conf_file_lines_array, conf_file_line_count);
     window_height_count = extract_config_values((char*)"initial_window_height", window_height_array, SINGLE_CONFIG_VALUE_SIZE, conf_file_lines_array, conf_file_line_count);
 
+    debug_show_loc("Read target paths from config file\n");
     matching_lines_curr_line_index = 0;
     for (size_t i = 0; i < target_paths_count; i++) {
-        debug_p("\033[33m%zu: %s\033[0m\n", i + 1, target_paths_array[i]);
+        debug_printf("\033[33m%zu: %s\033[0m\n", i + 1, target_paths_array[i]);
         keyword_lines_into_array(target_paths_array[i], matching_lines_array, &matching_lines_curr_line_index, MAX_MATCHING_LINES_CAPACITY, keywords_array, keywords_count);
     }
 
     // SDL /////////////////////////////////////////////////////////
-    debug_p("\nmain::Initializing SDL_ttf\n");
+    debug_show_loc("Initializing SDL_ttf\n");
     if (TTF_Init() == -1) {
-        debug_p("SDL_ttf could not initialize! TTF_Error: %s\n", TTF_GetError());
+        debug_show_loc("SDL_ttf could not initialize! TTF_Error: %s\n", TTF_GetError());
         SDL_Quit();
         return 1;
     }
 
-    debug_p("\nmain::Loading font\n");
+    debug_show_loc("Loading font\n");
 #ifdef _WIN32
     const char* font_path = "C:\\Users\\Eyu\\Projects\\probe\\nerd-fonts\\patched-fonts\\Iosevka\\IosevkaNerdFont-Regular.ttf";
 #else
@@ -290,15 +295,15 @@ int main(int argc, char* argv[]) {
     int font_size = 36;
     TTF_Font* font_ptr = TTF_OpenFont(font_path, font_size);
     if (!font_ptr) {
-        debug_p("Failed to load font! TTF_Error: %s\n", TTF_GetError());
+        debug_show_loc("Failed to load font! TTF_Error: %s\n", TTF_GetError());
         TTF_Quit();
         SDL_Quit();
         return 1;
     }
 
-    debug_p("\nmain::Initializing SDL\n");
+    debug_show_loc("Initializing SDL\n");
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        debug_p("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
+        debug_show_loc("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
         return -1;
     }
 
@@ -326,16 +331,17 @@ int main(int argc, char* argv[]) {
     SDL_bool window_is_on_top = SDL_TRUE;
 
     if (!window_ptr) {
-        debug_p("Failed to create window\n");
+        debug_show_loc("Failed to create window\n");
         return -1;
     }
 
     SDL_Renderer* renderer_ptr = SDL_CreateRenderer(window_ptr, -1, 0);
     if (!renderer_ptr) {
-        debug_p("Renderer could not be created! SDL_Error: %s\n", SDL_GetError());
+        debug_show_loc("Renderer could not be created! SDL_Error: %s\n", SDL_GetError());
         return -1;
     }
 
+    debug_show_loc("Entering SDL Event Loop\n");
     bool window_should_run = true;
     while (window_should_run) {
         SDL_Event sdl_events;
@@ -423,7 +429,12 @@ int main(int argc, char* argv[]) {
         }
 
         SDL_SetRenderDrawColor(renderer_ptr, bg_color.r, bg_color.g, bg_color.b, bg_color.a);
-        debug_p("BG Colors:\n\tr = %u\n\tg = %u\n\tb = %u\n\ta = %u\n", bg_color.r, bg_color.g, bg_color.b, bg_color.a);
+        debug_show_loc("BG Colors:\n"
+                       "\tr = %u\n"
+                       "\tg = %u\n"
+                       "\tb = %u\n"
+                       "\ta = %u\n",
+                       bg_color.r, bg_color.g, bg_color.b, bg_color.a);
         SDL_RenderClear(renderer_ptr);
 
         int y_offset = 0;
@@ -482,24 +493,25 @@ int main(int argc, char* argv[]) {
         SDL_RenderPresent(renderer_ptr);
         SDL_Delay(256);
 
+        debug_show_loc("Read target paths from config file\n");
         matching_lines_curr_line_index = 0;
         for (size_t i = 0; i < target_paths_count; i++) {
-            debug_p("\033[33m%zu: %s\033[0m\n", i + 1, target_paths_array[i]);
+            debug_printf("\033[33m%zu: %s\033[0m\n", i + 1, target_paths_array[i]);
             keyword_lines_into_array(target_paths_array[i], matching_lines_array, &matching_lines_curr_line_index, MAX_MATCHING_LINES_CAPACITY, keywords_array, keywords_count);
         }
     }
 
-    debug_p("\nmain::Destroying Renderer\n");
+    debug_show_loc("Destroying Renderer\n");
     SDL_DestroyRenderer(renderer_ptr);
 
-    debug_p("\nmain::Destroying Window\n");
+    debug_show_loc("Destroying Window\n");
     SDL_DestroyWindow(window_ptr);
 
-    debug_p("\nmain::Closing SDL_ttf\n");
+    debug_show_loc("Closing SDL_ttf\n");
     TTF_CloseFont(font_ptr);
     TTF_Quit();
 
-    debug_p("\nmain::Quitting SDL\n");
+    debug_show_loc("Quitting SDL\n");
     SDL_Quit();
 
     for (size_t i = 0; i < conf_file_line_count; i++) {
@@ -534,6 +546,6 @@ int main(int argc, char* argv[]) {
         free(window_y_position_array[i]);
     }
 
-    debug_p("\nmain::Exit\n");
+    debug_show_loc("Exiting Application\n");
     return 0;
 }
