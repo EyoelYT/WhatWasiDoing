@@ -68,7 +68,7 @@ void keyword_lines_into_array(char* file_path, char** destination_array, size_t*
 }
 
 void trim_keyword_prefix(char* text_line, char* keyword) {
-    if (!text_line)
+    if (!text_line || !keyword)
         return;
 
     char* char_ptr = text_line;
@@ -81,9 +81,9 @@ void trim_keyword_prefix(char* text_line, char* keyword) {
         char_ptr++; // Skip the extra space
     }
 
-    size_t min = strlen(keyword);
-    if (strncmp(char_ptr, keyword, min) == 0) {
-        char_ptr += min;
+    size_t compare_length = strlen(keyword);
+    if (strncmp(char_ptr, keyword, compare_length) == 0) {
+        char_ptr += compare_length;
         char_ptr++; // TODO: Skip only if there is a space key here
     }
 
