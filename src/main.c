@@ -14,6 +14,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define CYN   "\x1B[36m"
+#define YEL   "\x1B[33m"
+#define RESET "\x1B[0m"
+
 #define MAX_TARGET_PATHS 90
 #define MAX_KEYWORDS 10
 #define MAX_LINES_IN_CONFIG_FILE 100
@@ -22,7 +26,7 @@
 #define SINGLE_CONFIG_VALUE_SIZE 1
 
 #ifdef DEBUG_MODE
-    #define debug_show_loc(fmt, ...) fprintf(stdout, "\n%s:%d: %s():\n" fmt, __FILE__, __LINE__, __func__, ##__VA_ARGS__)
+    #define debug_show_loc(fmt, ...) fprintf(stdout, "\n%s:%d:" CYN " %s():\n" RESET fmt, __FILE__, __LINE__, __func__, ##__VA_ARGS__)
     #define debug_printf(...) printf(__VA_ARGS__)
 #else
     #define debug_show_loc(...) ((void)0)
@@ -261,7 +265,7 @@ int main(int argc, char* argv[]) {
     debug_show_loc("Read target paths from config file\n");
     matching_lines_curr_line_index = 0;
     for (size_t i = 0; i < target_paths_count; i++) {
-        debug_printf("\033[33m%zu: %s\033[0m\n", i + 1, target_paths_array[i]);
+        debug_printf(YEL "%zu: %s " RESET "\n", i + 1, target_paths_array[i]);
         keyword_lines_into_array(target_paths_array[i], matching_lines_array, &matching_lines_curr_line_index, MAX_MATCHING_LINES_CAPACITY, keywords_array, keywords_count);
     }
 
@@ -451,7 +455,7 @@ int main(int argc, char* argv[]) {
         debug_show_loc("Read target paths from config file\n");
         matching_lines_curr_line_index = 0;
         for (size_t i = 0; i < target_paths_count; i++) {
-            debug_printf("\033[33m%zu: %s\033[0m\n", i + 1, target_paths_array[i]);
+            debug_printf(YEL "%zu: %s" RESET "\n", i + 1, target_paths_array[i]);
             keyword_lines_into_array(target_paths_array[i], matching_lines_array, &matching_lines_curr_line_index, MAX_MATCHING_LINES_CAPACITY, keywords_array, keywords_count);
         }
     }

@@ -16,7 +16,7 @@ EXECUTABLE := $(BUILD_DIR)/froomf
 
 ifeq ($(OS),Windows_NT)
     # [-mconsole | -DDEBUG_MODE]
-    CCFLAGS := -O0 -Wall -Wextra
+    CCFLAGS := -O0 -Wall -Wextra -mconsole -DDEBUG_MODE
     LIBS     := $(SDL_LIBS)
 else
     # [-DDEBUG_MODE]
