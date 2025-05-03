@@ -12,9 +12,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
-#define CYN   "\x1B[36m"
-#define YEL   "\x1B[33m"
+#define CYN "\x1B[36m"
+#define YEL "\x1B[33m"
 #define RESET "\x1B[0m"
 
 #define MAX_TARGET_PATHS 90
@@ -207,6 +208,25 @@ void destroy_string_array(char** array, size_t array_max_size) {
     }
 }
 
+int target_paths_modified(char** target_paths_array, size_t target_paths_count, time_t* last_mtime) {
+    time_t latest_mtime = 0;
+    for (size_t i = 0; i < target_paths_count; i++) {
+        struct stat file_stat;
+        check_code(stat(target_paths_array[i], &file_stat), "File modification check failed.");
+
+        if (file_stat.st_mtime > latest_mtime) {
+            latest_mtime = file_stat.st_mtime;
+        }
+    }
+
+    int modified = (*last_mtime) != latest_mtime;
+    if (modified) {
+        *last_mtime = latest_mtime;
+    }
+
+    return modified;
+}
+
 int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused))) {
 
     char* keywords_array[MAX_KEYWORDS];
@@ -263,9 +283,16 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
 
     debug_show_loc("Read target paths from config file\n");
     matching_lines_curr_line_index = 0;
+    time_t last_mtime = 0;
     for (size_t i = 0; i < target_paths_count; i++) {
         debug_printf(YEL "%zu: %s " RESET "\n", i + 1, target_paths_array[i]);
         keyword_lines_into_array(target_paths_array[i], matching_lines_array, &matching_lines_curr_line_index, MAX_MATCHING_LINES_CAPACITY, keywords_array, keywords_count);
+
+        struct stat file_stat;
+        check_code(stat(target_paths_array[i], &file_stat), "File modification check failed.");
+        if (file_stat.st_mtime > last_mtime) {
+            last_mtime = file_stat.st_mtime;
+        }
     }
 
     // SDL /////////////////////////////////////////////////////////
@@ -452,11 +479,13 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
         SDL_RenderPresent(renderer_ptr);
         SDL_Delay(256);
 
-        debug_show_loc("Read target paths from config file\n");
-        matching_lines_curr_line_index = 0;
-        for (size_t i = 0; i < target_paths_count; i++) {
-            debug_printf(YEL "%zu: %s" RESET "\n", i + 1, target_paths_array[i]);
-            keyword_lines_into_array(target_paths_array[i], matching_lines_array, &matching_lines_curr_line_index, MAX_MATCHING_LINES_CAPACITY, keywords_array, keywords_count);
+        if (target_paths_modified(target_paths_array, target_paths_count, &last_mtime) != 0) {
+            debug_show_loc("Read target paths from config file\n");
+            matching_lines_curr_line_index = 0;
+            for (size_t i = 0; i < target_paths_count; i++) {
+                debug_printf(YEL "%zu: %s" RESET "\n", i + 1, target_paths_array[i]);
+                keyword_lines_into_array(target_paths_array[i], matching_lines_array, &matching_lines_curr_line_index, MAX_MATCHING_LINES_CAPACITY, keywords_array, keywords_count);
+            }
         }
     }
 
