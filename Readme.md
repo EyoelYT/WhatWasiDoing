@@ -101,32 +101,32 @@ You can check where your `home` folder is using:
 <tbody>
 <tr>
 <td class="org-left">r</td>
-<td class="org-left">Increase red component</td>
+<td class="org-left">Increase red background color component</td>
 </tr>
 
 <tr>
 <td class="org-left">g</td>
-<td class="org-left">Increase green component</td>
+<td class="org-left">Increase green background color component</td>
 </tr>
 
 <tr>
 <td class="org-left">b</td>
-<td class="org-left">Increase blue component</td>
+<td class="org-left">Increase blue background color component</td>
 </tr>
 
 <tr>
 <td class="org-left">R</td>
-<td class="org-left">Decrease red component</td>
+<td class="org-left">Decrease red background color component</td>
 </tr>
 
 <tr>
 <td class="org-left">G</td>
-<td class="org-left">Decrease green component</td>
+<td class="org-left">Decrease green background color component</td>
 </tr>
 
 <tr>
 <td class="org-left">B</td>
-<td class="org-left">Decrease blue component</td>
+<td class="org-left">Decrease blue background color component</td>
 </tr>
 
 <tr>
