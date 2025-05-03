@@ -7,7 +7,6 @@
 #include <SDL2/SDL_timer.h>
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_video.h>
-#include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -308,7 +307,8 @@ int main(int argc, char* argv[]) {
     SDL_bool window_is_resizable = SDL_FALSE;
     SDL_bool window_is_on_top = SDL_TRUE;
 
-    SDL_Renderer* renderer_ptr = check_ptr(SDL_CreateRenderer(window_ptr, -1, 0), "Couldn't create an SDL renderer", SDL_GetError());
+    SDL_RendererFlags sdl_renderer_flags = SDL_RENDERER_SOFTWARE;
+    SDL_Renderer* renderer_ptr = check_ptr(SDL_CreateRenderer(window_ptr, -1, sdl_renderer_flags), "Couldn't create an SDL renderer", SDL_GetError());
 
     debug_show_loc("Entering SDL Event Loop\n");
     bool window_should_run = true;
