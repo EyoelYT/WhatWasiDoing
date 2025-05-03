@@ -32,7 +32,7 @@
     #define debug_printf(...) ((void)0)
 #endif
 
-void* check_ptr(void* ptr, char* message_on_failure, const char* error_fetcher) {
+void* check_ptr(void* ptr, char* message_on_failure __attribute__((unused)), const char* error_fetcher __attribute__((unused))) {
     if (ptr == NULL) {
         debug_printf("Something wrong in SDL. %s. %s\n", message_on_failure, error_fetcher);
         abort();
@@ -40,7 +40,7 @@ void* check_ptr(void* ptr, char* message_on_failure, const char* error_fetcher) 
     return ptr;
 }
 
-void check_code(int code, const char* error_fetcher) {
+void check_code(int code, const char* error_fetcher __attribute__((unused))) {
     if (code < 0) {
         debug_printf("Something wrong in SDL. %s\n", error_fetcher);
         abort();
@@ -207,7 +207,7 @@ void destroy_string_array(char** array, size_t array_max_size) {
     }
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused))) {
 
     char* keywords_array[MAX_KEYWORDS];
     char* target_paths_array[MAX_TARGET_PATHS];
