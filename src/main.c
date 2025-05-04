@@ -29,16 +29,16 @@
 #define SDL_DELAY_FACTOR 256
 
 #ifdef DEBUG_MODE
-    #define debug_show_loc(fmt, ...) fprintf(stdout, "\n%s:%d:" CYN " %s():\n" RESET fmt, __FILE__, __LINE__, __func__, ##__VA_ARGS__)
-    #define debug_printf(...) printf(__VA_ARGS__)
+    #define DEBUG_SHOW_LOC(fmt, ...) fprintf(stdout, "\n%s:%d:" CYN " %s():\n" RESET fmt, __FILE__, __LINE__, __func__, ##__VA_ARGS__)
+    #define DEBUG_PRINTF(...) printf(__VA_ARGS__)
 #else
-    #define debug_show_loc(...) ((void)0)
-    #define debug_printf(...) ((void)0)
+    #define DEBUG_SHOW_LOC(...) ((void)0)
+    #define DEBUG_PRINTF(...) ((void)0)
 #endif
 
 void* check_ptr(void* ptr, char* message_on_failure __attribute__((unused)), const char* error_fetcher __attribute__((unused))) {
     if (ptr == NULL) {
-        debug_printf("Something wrong in SDL. %s. %s\n", message_on_failure, error_fetcher);
+        DEBUG_PRINTF("Something wrong in SDL. %s. %s\n", message_on_failure, error_fetcher);
         abort();
     }
     return ptr;
@@ -46,7 +46,7 @@ void* check_ptr(void* ptr, char* message_on_failure __attribute__((unused)), con
 
 void check_code(int code, const char* error_fetcher __attribute__((unused))) {
     if (code < 0) {
-        debug_printf("Something wrong in SDL. %s\n", error_fetcher);
+        DEBUG_PRINTF("Something wrong in SDL. %s\n", error_fetcher);
         abort();
     }
 }
@@ -56,13 +56,13 @@ void keyword_lines_into_array(char* file_path, char** destination_array, size_t*
     char* file_content_line = strtok((char*)file_content, "\n");
 
     // Search for the keywords in each line
-    debug_show_loc("Matching lines:\n");
+    DEBUG_SHOW_LOC("Matching lines:\n");
     while (file_content_line != NULL && *destination_array_index < destination_array_max_capacity) {
         for (size_t i = 0; i < keywords_source_count; i++) {
             if (strstr(file_content_line, keywords_source_array[i])) {
                 strncpy(destination_array[*destination_array_index], file_content_line, MAX_STRING_LENGTH_CAPACITY);
                 (*destination_array_index)++;
-                debug_printf("%s\n", file_content_line);
+                DEBUG_PRINTF("%s\n", file_content_line);
             }
         }
         file_content_line = strtok(NULL, "\n");
@@ -115,7 +115,7 @@ int conf_file_lines_into_array(const char* file_path, char** file_lines_array) {
     // Get config file vars
     FILE* file = fopen(file_path, "r");
     if (!file) {
-        debug_show_loc("File '%s' not found. Creating demo file.\n", file_path);
+        DEBUG_SHOW_LOC("File '%s' not found. Creating demo file.\n", file_path);
         file = check_ptr(create_demo_conf_file(file_path), "Could not create the demo config file", SDL_GetError());
     }
 
@@ -136,15 +136,15 @@ int conf_file_lines_into_array(const char* file_path, char** file_lines_array) {
         curr_line++;
 
         if (curr_line >= MAX_LINES_IN_CONFIG_FILE) {
-            debug_show_loc("Warning: Reached maximum number of lines in config file: %d max lines allowed.\n", MAX_LINES_IN_CONFIG_FILE);
+            DEBUG_SHOW_LOC("Warning: Reached maximum number of lines in config file: %d max lines allowed.\n", MAX_LINES_IN_CONFIG_FILE);
             break;
         }
     }
 
     // Show the lines that are read
-    debug_show_loc("Lines read from '%s':\n", file_path);
+    DEBUG_SHOW_LOC("Lines read from '%s':\n", file_path);
     for (size_t i = 0; i < curr_line; i++) {
-        debug_printf("%s:%zu: line read: %s\n", file_path, i + 1, file_lines_array[i]);
+        DEBUG_PRINTF("%s:%zu: line read: %s\n", file_path, i + 1, file_lines_array[i]);
     }
 
     fclose(file);
@@ -284,11 +284,11 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
     window_width_count = extract_config_values("initial_window_width", window_width_array, SINGLE_CONFIG_VALUE_SIZE, conf_file_lines_array, conf_file_line_count);
     window_height_count = extract_config_values("initial_window_height", window_height_array, SINGLE_CONFIG_VALUE_SIZE, conf_file_lines_array, conf_file_line_count);
 
-    debug_show_loc("Read target paths from config file\n");
+    DEBUG_SHOW_LOC("Read target paths from config file\n");
     matching_lines_curr_line_index = 0;
     time_t last_mtime = 0;
     for (size_t i = 0; i < target_paths_count; i++) {
-        debug_printf(YEL "%zu: %s " RESET "\n", i + 1, target_paths_array[i]);
+        DEBUG_PRINTF(YEL "%zu: %s " RESET "\n", i + 1, target_paths_array[i]);
         keyword_lines_into_array(target_paths_array[i], matching_lines_array, &matching_lines_curr_line_index, MAX_MATCHING_LINES_CAPACITY, keywords_array, keywords_count);
 
         struct stat file_stat;
@@ -299,10 +299,10 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
     }
 
     // SDL /////////////////////////////////////////////////////////
-    debug_show_loc("Initializing SDL_ttf\n");
+    DEBUG_SHOW_LOC("Initializing SDL_ttf\n");
     check_code(TTF_Init(), TTF_GetError());
 
-    debug_show_loc("Loading font\n");
+    DEBUG_SHOW_LOC("Loading font\n");
 #ifdef _WIN32
     const char* font_path = "C:\\Users\\Eyu\\Projects\\probe\\nerd-fonts\\patched-fonts\\Iosevka\\IosevkaNerdFont-Regular.ttf";
 #else
@@ -311,7 +311,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
     int font_size = 36;
     TTF_Font* font_ptr = check_ptr(TTF_OpenFont(font_path, font_size), "Error loading font", TTF_GetError());
 
-    debug_show_loc("Initializing SDL\n");
+    DEBUG_SHOW_LOC("Initializing SDL\n");
     check_code(SDL_Init(SDL_INIT_VIDEO), SDL_GetError());
 
     int user_display_index = 0;
@@ -342,7 +342,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
     SDL_RendererFlags sdl_renderer_flags = SDL_RENDERER_SOFTWARE;
     SDL_Renderer* renderer_ptr = check_ptr(SDL_CreateRenderer(window_ptr, -1, sdl_renderer_flags), "Couldn't create an SDL renderer", SDL_GetError());
 
-    debug_show_loc("Entering SDL Event Loop\n");
+    DEBUG_SHOW_LOC("Entering SDL Event Loop\n");
     bool window_should_run = true;
     while (window_should_run) {
         SDL_Event sdl_events;
@@ -436,7 +436,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
         }
 
         SDL_SetRenderDrawColor(renderer_ptr, bg_color.r, bg_color.g, bg_color.b, bg_color.a);
-        debug_show_loc("BG Colors:\n"
+        DEBUG_SHOW_LOC("BG Colors:\n"
                        "\tr = %u\n"
                        "\tg = %u\n"
                        "\tb = %u\n"
@@ -491,26 +491,26 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
         SDL_Delay(SDL_DELAY_FACTOR);
 
         if (target_paths_modified(target_paths_array, target_paths_count, &last_mtime) != 0) {
-            debug_show_loc("Read target paths from config file\n");
+            DEBUG_SHOW_LOC("Read target paths from config file\n");
             matching_lines_curr_line_index = 0;
             for (size_t i = 0; i < target_paths_count; i++) {
-                debug_printf(YEL "%zu: %s" RESET "\n", i + 1, target_paths_array[i]);
+                DEBUG_PRINTF(YEL "%zu: %s" RESET "\n", i + 1, target_paths_array[i]);
                 keyword_lines_into_array(target_paths_array[i], matching_lines_array, &matching_lines_curr_line_index, MAX_MATCHING_LINES_CAPACITY, keywords_array, keywords_count);
             }
         }
     }
 
-    debug_show_loc("Destroying Renderer\n");
+    DEBUG_SHOW_LOC("Destroying Renderer\n");
     SDL_DestroyRenderer(renderer_ptr);
 
-    debug_show_loc("Destroying Window\n");
+    DEBUG_SHOW_LOC("Destroying Window\n");
     SDL_DestroyWindow(window_ptr);
 
-    debug_show_loc("Closing SDL_ttf\n");
+    DEBUG_SHOW_LOC("Closing SDL_ttf\n");
     TTF_CloseFont(font_ptr);
     TTF_Quit();
 
-    debug_show_loc("Quitting SDL\n");
+    DEBUG_SHOW_LOC("Quitting SDL\n");
     SDL_Quit();
 
     destroy_string_array(conf_file_lines_array, MAX_LINES_IN_CONFIG_FILE);
@@ -522,7 +522,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
     destroy_string_array(window_x_position_array, SINGLE_CONFIG_VALUE_SIZE);
     destroy_string_array(window_y_position_array, SINGLE_CONFIG_VALUE_SIZE);
 
-    debug_show_loc("Exiting Application\n");
+    DEBUG_SHOW_LOC("Exiting Application\n");
 
     return 0;
 }
