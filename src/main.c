@@ -60,7 +60,7 @@ void keyword_lines_into_array(char* file_path, char** destination_array, size_t*
     while (file_content_line != NULL && *destination_array_index < destination_array_max_capacity) {
         for (size_t i = 0; i < keywords_source_count; i++) {
             if (strstr(file_content_line, keywords_source_array[i])) {
-                strcpy(destination_array[*destination_array_index], file_content_line);
+                strncpy(destination_array[*destination_array_index], file_content_line, MAX_STRING_LENGTH_CAPACITY);
                 (*destination_array_index)++;
                 debug_printf("%s\n", file_content_line);
             }
@@ -132,7 +132,7 @@ int conf_file_lines_into_array(const char* file_path, char** file_lines_array) {
             string_buffer[string_buffer_len - 1] = '\0';
         }
 
-        strcpy(file_lines_array[curr_line], string_buffer);
+        strncpy(file_lines_array[curr_line], string_buffer, MAX_STRING_LENGTH_CAPACITY);
         curr_line++;
 
         if (curr_line >= MAX_LINES_IN_CONFIG_FILE) {
@@ -178,7 +178,7 @@ size_t extract_config_values(char* keyword, char** destination_array, size_t des
         // copy the substring within quotes into the destination array
         if (destination_array_index < destination_array_length) {
             if (strstr(source_array[i], keyword) != NULL) {
-                strcpy(destination_array[destination_array_index], string_buffer);
+                strncpy(destination_array[destination_array_index], string_buffer, MAX_STRING_LENGTH_CAPACITY);
                 keyword_index++;
                 destination_array_index++;
             }
