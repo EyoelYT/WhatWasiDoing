@@ -11,7 +11,6 @@
 -   [Building](#building)
 -   [Debug Mode](#debug_mode)
 -   [System Requirements](#system_requirements)
--   [Limitations](#limitations)
 -   [License](#license)
 
 
@@ -100,6 +99,21 @@ You can check where your `home` folder is using:
 </thead>
 <tbody>
 <tr>
+<td class="org-left">p</td>
+<td class="org-left">Toggle always-on-top</td>
+</tr>
+
+<tr>
+<td class="org-left">t</td>
+<td class="org-left">Toggle window border</td>
+</tr>
+
+<tr>
+<td class="org-left">z</td>
+<td class="org-left">Reset window position/size</td>
+</tr>
+
+<tr>
 <td class="org-left">r</td>
 <td class="org-left">Increase red background color component</td>
 </tr>
@@ -115,33 +129,33 @@ You can check where your `home` folder is using:
 </tr>
 
 <tr>
-<td class="org-left">R</td>
+<td class="org-left">Shift r</td>
 <td class="org-left">Decrease red background color component</td>
 </tr>
 
 <tr>
-<td class="org-left">G</td>
+<td class="org-left">Shift g</td>
 <td class="org-left">Decrease green background color component</td>
 </tr>
 
 <tr>
-<td class="org-left">B</td>
+<td class="org-left">Shift b</td>
 <td class="org-left">Decrease blue background color component</td>
 </tr>
 
 <tr>
-<td class="org-left">t</td>
-<td class="org-left">Toggle window border</td>
+<td class="org-left">Ctrl  =</td>
+<td class="org-left">Zoom In</td>
 </tr>
 
 <tr>
-<td class="org-left">z</td>
-<td class="org-left">Reset window position/size</td>
+<td class="org-left">Ctrl  -</td>
+<td class="org-left">Zoom Out</td>
 </tr>
 
 <tr>
-<td class="org-left">p</td>
-<td class="org-left">Toggle always-on-top</td>
+<td class="org-left">Ctrl  0</td>
+<td class="org-left">Reset zoom</td>
 </tr>
 </tbody>
 </table>
@@ -176,16 +190,6 @@ To enable debug output, compile with `-DDEBUG_MODE` using the Makefile
 ## Linux
 
 -   X11 or Wayland
-
-
-<a id="limitations"></a>
-
-# Limitations
-
--   Maximum of 90 target file paths
--   Maximum of 10 keywords
--   Maximum of 100 lines in config file
--   Maximum of 150 matching task lines displayed
 
 
 <a id="license"></a>
