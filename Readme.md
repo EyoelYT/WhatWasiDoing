@@ -66,11 +66,10 @@ Create a `.currTasks.conf` file in your home folder with the following in it:
     initial_window_x = "10"
     initial_window_y = "10"
 
-You can specify multiple `files` and `keywords`. The `file` and `keyword` entries are *required*.
-
-`initial_window_width`, `initial_window_height`, `initial_window_x` and `initial_window_y` accept pixel values, and are *optional*.
-
-File listing order is relevant to which items are displayed on the first line
+-   The `file` and `keyword` entries are *required*.
+-   You can specify multiple `files` and `keywords`.
+-   File listing order affects which entries appear on top
+-   `initial_window_width`, `initial_window_height`, `initial_window_x` and `initial_window_y` accept pixel values, and are *optional*.
 
 You can check where your `home` folder is using:
 
