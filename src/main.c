@@ -25,6 +25,8 @@
 #define MAX_STRING_LENGTH_CAPACITY 512
 #define SINGLE_CONFIG_VALUE_SIZE 1
 #define SCALE_FACTOR 0.10f
+#define COLOR_CHANGE_FACTOR 16
+#define SDL_DELAY_FACTOR 256
 
 #ifdef DEBUG_MODE
     #define debug_show_loc(fmt, ...) fprintf(stdout, "\n%s:%d:" CYN " %s():\n" RESET fmt, __FILE__, __LINE__, __func__, ##__VA_ARGS__)
@@ -461,7 +463,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
             SDL_Surface* text_surface;
 
             if (i == 0) {
-                char matching_lines_first_line_text[256];
+                char matching_lines_first_line_text[MAX_STRING_LENGTH_CAPACITY];
                 const char* matching_lines_first_line_prefix = "Current Task: ";
 
                 // trim out the keywords
@@ -486,7 +488,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
         }
 
         SDL_RenderPresent(renderer_ptr);
-        SDL_Delay(256);
+        SDL_Delay(SDL_DELAY_FACTOR);
 
         if (target_paths_modified(target_paths_array, target_paths_count, &last_mtime) != 0) {
             debug_show_loc("Read target paths from config file\n");
