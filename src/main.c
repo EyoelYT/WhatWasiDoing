@@ -511,14 +511,14 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
     debug_show_loc("Quitting SDL\n");
     SDL_Quit();
 
-    destroy_string_array(conf_file_lines_array, conf_file_line_count);
-    destroy_string_array(matching_lines_array, conf_file_line_count);
-    destroy_string_array(target_paths_array, target_paths_count);
-    destroy_string_array(keywords_array, keywords_count);
-    destroy_string_array(window_height_array, window_height_count);
-    destroy_string_array(window_width_array, window_width_count);
-    destroy_string_array(window_x_position_array, window_x_position_count);
-    destroy_string_array(window_y_position_array, window_y_position_count);
+    destroy_string_array(conf_file_lines_array, MAX_LINES_IN_CONFIG_FILE);
+    destroy_string_array(matching_lines_array, MAX_LINES_IN_CONFIG_FILE);
+    destroy_string_array(target_paths_array, MAX_TARGET_PATHS);
+    destroy_string_array(keywords_array, MAX_KEYWORDS);
+    destroy_string_array(window_height_array, SINGLE_CONFIG_VALUE_SIZE);
+    destroy_string_array(window_width_array, SINGLE_CONFIG_VALUE_SIZE);
+    destroy_string_array(window_x_position_array, SINGLE_CONFIG_VALUE_SIZE);
+    destroy_string_array(window_y_position_array, SINGLE_CONFIG_VALUE_SIZE);
 
     debug_show_loc("Exiting Application\n");
 
