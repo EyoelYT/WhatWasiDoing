@@ -371,6 +371,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
 
     DEBUG_SHOW_LOC("Entering SDL Event Loop\n");
     bool window_should_run = true;
+    bool window_should_render = false;
     while (window_should_run) {
         SDL_Event sdl_events;
         while (SDL_PollEvent(&sdl_events)) {
@@ -380,12 +381,14 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
                 break;
             }
             case SDL_WINDOWEVENT: {
+                window_should_render = true;
                 if (sdl_events.window.event == SDL_WINDOWEVENT_CLOSE) {
                     window_should_run = false;
                 }
                 break;
             }
             case SDL_KEYDOWN: {
+                window_should_render = true;
                 if (sdl_events.key.keysym.sym == SDLK_r && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
                     bg_color.r -= 16;
                 } else if (sdl_events.key.keysym.sym == SDLK_g && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
@@ -462,62 +465,65 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
             }
         }
 
-        SDL_SetRenderDrawColor(renderer_ptr, bg_color.r, bg_color.g, bg_color.b, bg_color.a);
-        DEBUG_SHOW_LOC("BG Colors:\n"
-                       "\tr = %u\n"
-                       "\tg = %u\n"
-                       "\tb = %u\n"
-                       "\ta = %u\n",
-                       bg_color.r, bg_color.g, bg_color.b, bg_color.a);
-        SDL_RenderClear(renderer_ptr);
+        if (window_should_render) {
+            SDL_SetRenderDrawColor(renderer_ptr, bg_color.r, bg_color.g, bg_color.b, bg_color.a);
+            DEBUG_SHOW_LOC("BG Colors:\n"
+                           "\tr = %u\n"
+                           "\tg = %u\n"
+                           "\tb = %u\n"
+                           "\ta = %u\n",
+                           bg_color.r, bg_color.g, bg_color.b, bg_color.a);
+            SDL_RenderClear(renderer_ptr);
 
-        int y_offset = 0;
+            int y_offset = 0;
 
-        if (matching_lines_curr_line_index == 0) {
-            const char* text_as_none = "NONE";
-            SDL_Color text_color = {255, 255, 255, 255};
-            SDL_Surface* text_surface = TTF_RenderText_Blended(font_ptr, text_as_none, text_color);
-            SDL_Texture* text_texture = SDL_CreateTextureFromSurface(renderer_ptr, text_surface);
-            SDL_Rect src_rect = {0, 0, text_surface->w, text_surface->h};
-            SDL_Rect dst_rect = {(window_width / 2) - (int)(window_width / 2.5), y_offset, text_surface->w * zoom_scale, text_surface->h * zoom_scale};
-            SDL_RenderCopy(renderer_ptr, text_texture, &src_rect, &dst_rect);
-            SDL_FreeSurface(text_surface);
-            SDL_DestroyTexture(text_texture);
-        }
-        if (first_entry_only_setting) {
-            matching_lines_curr_line_index = 1; // show only first entry
-        }
-        for (size_t i = 0; i < matching_lines_curr_line_index; i++) {
+            if (matching_lines_curr_line_index == 0) {
+                const char* text_as_none = "NONE";
+                SDL_Color text_color = {255, 255, 255, 255};
+                SDL_Surface* text_surface = TTF_RenderText_Blended(font_ptr, text_as_none, text_color);
+                SDL_Texture* text_texture = SDL_CreateTextureFromSurface(renderer_ptr, text_surface);
+                SDL_Rect src_rect = {0, 0, text_surface->w, text_surface->h};
+                SDL_Rect dst_rect = {(window_width / 2) - (int)(window_width / 2.5), y_offset, text_surface->w * zoom_scale, text_surface->h * zoom_scale};
+                SDL_RenderCopy(renderer_ptr, text_texture, &src_rect, &dst_rect);
+                SDL_FreeSurface(text_surface);
+                SDL_DestroyTexture(text_texture);
+            }
+            if (first_entry_only_setting) {
+                matching_lines_curr_line_index = 1; // show only first entry
+            }
+            for (size_t i = 0; i < matching_lines_curr_line_index; i++) {
 
-            SDL_Color text_color = {255, 255, 255, 255};
-            SDL_Surface* text_surface;
+                SDL_Color text_color = {255, 255, 255, 255};
+                SDL_Surface* text_surface;
 
-            if (i == 0) {
-                char matching_lines_first_line_text[MAX_STRING_LENGTH_CAPACITY];
-                const char* matching_lines_first_line_prefix = "Current Task: ";
+                if (i == 0) {
+                    char matching_lines_first_line_text[MAX_STRING_LENGTH_CAPACITY];
+                    const char* matching_lines_first_line_prefix = "Current Task: ";
 
-                // trim out the keywords
-                for (size_t i = 0; i < keywords_count; i++) {
-                    trim_keyword_prefix(matching_lines_array[0], keywords_array[i]);
+                    // trim out the keywords
+                    for (size_t i = 0; i < keywords_count; i++) {
+                        trim_keyword_prefix(matching_lines_array[0], keywords_array[i]);
+                    }
+                    snprintf(matching_lines_first_line_text, sizeof(matching_lines_first_line_text), "%s%s", matching_lines_first_line_prefix, matching_lines_array[i]);
+                    text_surface = check_ptr(TTF_RenderText_Blended(font_ptr, matching_lines_first_line_text, text_color), "Error loading a font text surface", TTF_GetError());
+                } else {
+                    text_surface = check_ptr(TTF_RenderText_Blended(font_ptr, matching_lines_array[i], text_color), "Error loading a font text surface", TTF_GetError());
                 }
-                snprintf(matching_lines_first_line_text, sizeof(matching_lines_first_line_text), "%s%s", matching_lines_first_line_prefix, matching_lines_array[i]);
-                text_surface = check_ptr(TTF_RenderText_Blended(font_ptr, matching_lines_first_line_text, text_color), "Error loading a font text surface", TTF_GetError());
-            } else {
-                text_surface = check_ptr(TTF_RenderText_Blended(font_ptr, matching_lines_array[i], text_color), "Error loading a font text surface", TTF_GetError());
+
+                SDL_Texture* text_texture = check_ptr(SDL_CreateTextureFromSurface(renderer_ptr, text_surface), "Couldn't create a SDL texture", TTF_GetError());
+                SDL_Rect src_rect = {0, 0, text_surface->w, text_surface->h};
+                SDL_Rect dst_rect = {0, y_offset, text_surface->w * zoom_scale, text_surface->h * zoom_scale};
+                SDL_RenderCopy(renderer_ptr, text_texture, &src_rect, &dst_rect);
+
+                y_offset += text_surface->h * zoom_scale;
+
+                SDL_FreeSurface(text_surface);
+                SDL_DestroyTexture(text_texture);
             }
 
-            SDL_Texture* text_texture = check_ptr(SDL_CreateTextureFromSurface(renderer_ptr, text_surface), "Couldn't create a SDL texture", TTF_GetError());
-            SDL_Rect src_rect = {0, 0, text_surface->w, text_surface->h};
-            SDL_Rect dst_rect = {0, y_offset, text_surface->w * zoom_scale, text_surface->h * zoom_scale};
-            SDL_RenderCopy(renderer_ptr, text_texture, &src_rect, &dst_rect);
-
-            y_offset += text_surface->h * zoom_scale;
-
-            SDL_FreeSurface(text_surface);
-            SDL_DestroyTexture(text_texture);
+            SDL_RenderPresent(renderer_ptr);
+            window_should_render = false;
         }
-
-        SDL_RenderPresent(renderer_ptr);
         SDL_Delay(SDL_DELAY_FACTOR);
 
         if (target_paths_modified(target_paths_array, target_paths_count, &last_mtime) != 0) {
