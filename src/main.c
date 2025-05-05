@@ -189,12 +189,21 @@ size_t extract_config_values(char* keyword, char** destination_array, size_t des
     return keyword_index;
 }
 
-int parse_single_user_value(char** user_value_array, size_t user_value_count, int default_value) {
+int parse_single_user_value_int(char** user_value_array, size_t user_value_count, int default_value) {
     if (user_value_count < 1 || !isdigit(user_value_array[0][0])) {
         return default_value;
-    } else {
-        return atoi(user_value_array[0]);
     }
+    return atoi(user_value_array[0]);
+}
+
+int parse_single_user_value_bool(char** user_value_array, size_t user_value_count, bool default_value) {
+    if (user_value_count < 1) {
+        return default_value;
+    }
+    if (strcmp(user_value_array[0], "true") == 0) {
+        return true;
+    }
+    return false;
 }
 
 int centered_window_x_position(int user_screen_width, int window_width) {
@@ -252,6 +261,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
     char* window_width_array[SINGLE_CONFIG_VALUE_SIZE];
     char* window_x_position_array[SINGLE_CONFIG_VALUE_SIZE];
     char* window_y_position_array[SINGLE_CONFIG_VALUE_SIZE];
+    char* first_entry_only_array[SINGLE_CONFIG_VALUE_SIZE];
     char conf_file_path[MAX_STRING_LENGTH_CAPACITY];
     size_t keywords_count;
     size_t target_paths_count;
@@ -261,6 +271,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
     size_t window_width_count;
     size_t window_x_position_count;
     size_t window_y_position_count;
+    size_t first_entry_only_count;
     SDL_Color bg_color = {24, 128, 64, 240};
 
     initialize_string_array(keywords_array, MAX_KEYWORDS, MAX_STRING_LENGTH_CAPACITY);
@@ -271,6 +282,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
     initialize_string_array(window_width_array, SINGLE_CONFIG_VALUE_SIZE, MAX_STRING_LENGTH_CAPACITY);
     initialize_string_array(window_x_position_array, SINGLE_CONFIG_VALUE_SIZE, MAX_STRING_LENGTH_CAPACITY);
     initialize_string_array(window_y_position_array, SINGLE_CONFIG_VALUE_SIZE, MAX_STRING_LENGTH_CAPACITY);
+    initialize_string_array(first_entry_only_array, SINGLE_CONFIG_VALUE_SIZE, MAX_STRING_LENGTH_CAPACITY);
 
     const char* window_title = "WhatWasiDoing";
 #ifdef _WIN32
@@ -295,6 +307,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
     window_y_position_count = extract_config_values("initial_window_y", window_y_position_array, SINGLE_CONFIG_VALUE_SIZE, conf_file_lines_array, conf_file_line_count);
     window_width_count = extract_config_values("initial_window_width", window_width_array, SINGLE_CONFIG_VALUE_SIZE, conf_file_lines_array, conf_file_line_count);
     window_height_count = extract_config_values("initial_window_height", window_height_array, SINGLE_CONFIG_VALUE_SIZE, conf_file_lines_array, conf_file_line_count);
+    first_entry_only_count = extract_config_values("first_entry_only", first_entry_only_array, SINGLE_CONFIG_VALUE_SIZE, conf_file_lines_array, conf_file_line_count);
 
     DEBUG_SHOW_LOC("Read target paths from config file\n");
     matching_lines_curr_line_index = 0;
@@ -334,11 +347,13 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
     const int default_window_height = 50;
     const int default_window_x_position = (user_display_mode_info.w / 2) - (default_window_width / 2); // center - half-width
     const int default_window_y_position = user_display_mode_info.h - default_window_height;
+    const bool default_show_first_entry_only = false;
 
-    int window_width = parse_single_user_value(window_width_array, window_width_count, default_window_width);
-    int window_height = parse_single_user_value(window_height_array, window_height_count, default_window_height);                 // height downwards
-    int window_position_x = parse_single_user_value(window_x_position_array, window_x_position_count, default_window_x_position); // left border position
-    int window_position_y = parse_single_user_value(window_y_position_array, window_y_position_count, default_window_y_position); // top border position
+    int window_width = parse_single_user_value_int(window_width_array, window_width_count, default_window_width);
+    int window_height = parse_single_user_value_int(window_height_array, window_height_count, default_window_height);                 // height downwards
+    int window_position_x = parse_single_user_value_int(window_x_position_array, window_x_position_count, default_window_x_position); // left border position
+    int window_position_y = parse_single_user_value_int(window_y_position_array, window_y_position_count, default_window_y_position); // top border position
+    bool first_entry_only_setting = parse_single_user_value_bool(first_entry_only_array, first_entry_only_count, default_show_first_entry_only);
 
     float zoom_scale = 1.0;
 
@@ -468,6 +483,9 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
             SDL_RenderCopy(renderer_ptr, text_texture, &src_rect, &dst_rect);
             SDL_FreeSurface(text_surface);
             SDL_DestroyTexture(text_texture);
+        }
+        if (first_entry_only_setting) {
+            matching_lines_curr_line_index = 1; // show only first entry
         }
         for (size_t i = 0; i < matching_lines_curr_line_index; i++) {
 
