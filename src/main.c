@@ -24,9 +24,11 @@
 #define MAX_MATCHING_LINES_CAPACITY 150
 #define MAX_STRING_LENGTH_CAPACITY 512
 #define SINGLE_CONFIG_VALUE_SIZE 1
-#define SCALE_FACTOR 0.10f
+#define ZOOM_SCALE_FACTOR 0.15f
 #define COLOR_CHANGE_FACTOR 16
 #define SDL_DELAY_FACTOR 256
+#define MIN_ZOOM_SCALE 0.5f
+#define MAX_ZOOM_SCALE 5.0f
 
 #ifdef DEBUG_MODE
     #define DEBUG_SHOW_LOC(fmt, ...) fprintf(stdout, "\n%s:%d:" CYN " %s():\n" RESET fmt, __FILE__, __LINE__, __func__, ##__VA_ARGS__)
@@ -230,6 +232,16 @@ int target_paths_modified(char** target_paths_array, size_t target_paths_count, 
     return modified;
 }
 
+float clamp(float value, float min, float max) {
+    if (value < min) {
+        return min;
+    } else if (value > max) {
+        return max;
+    } else {
+        return value;
+    }
+}
+
 int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused))) {
 
     char* keywords_array[MAX_KEYWORDS];
@@ -328,7 +340,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
     int window_position_x = parse_single_user_value(window_x_position_array, window_x_position_count, default_window_x_position); // left border position
     int window_position_y = parse_single_user_value(window_y_position_array, window_y_position_count, default_window_y_position); // top border position
 
-    float user_scale = 1.0;
+    float zoom_scale = 1.0;
 
     // Adjust centering after receiving the user's desired width; TODO: make it the user's option
     window_position_x = centered_window_x_position(user_display_mode_info.w, window_width);
@@ -368,11 +380,11 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
                 } else if (sdl_events.key.keysym.sym == SDLK_a && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
                     bg_color.a -= 16;
                 } else if (sdl_events.key.keysym.sym == SDLK_EQUALS && (sdl_events.key.keysym.mod & KMOD_CTRL)) {
-                    user_scale += SCALE_FACTOR * user_scale;
+                    zoom_scale = clamp(zoom_scale + (ZOOM_SCALE_FACTOR * zoom_scale), MIN_ZOOM_SCALE, MAX_ZOOM_SCALE);
                 } else if (sdl_events.key.keysym.sym == SDLK_MINUS && (sdl_events.key.keysym.mod & KMOD_CTRL)) {
-                    user_scale -= SCALE_FACTOR * user_scale;
+                    zoom_scale = clamp(zoom_scale - (ZOOM_SCALE_FACTOR * zoom_scale), MIN_ZOOM_SCALE, MAX_ZOOM_SCALE);
                 } else if (sdl_events.key.keysym.sym == SDLK_0 && (sdl_events.key.keysym.mod & KMOD_CTRL)) {
-                    user_scale = 1.0;
+                    zoom_scale = 1.0;
                 } else {
                     switch (sdl_events.key.keysym.sym) {
                     case SDLK_r: {
@@ -452,7 +464,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
             SDL_Surface* text_surface = TTF_RenderText_Blended(font_ptr, text_as_none, text_color);
             SDL_Texture* text_texture = SDL_CreateTextureFromSurface(renderer_ptr, text_surface);
             SDL_Rect src_rect = {0, 0, text_surface->w, text_surface->h};
-            SDL_Rect dst_rect = {(window_width / 2) - (int)(window_width / 2.5), y_offset, text_surface->w * user_scale, text_surface->h * user_scale};
+            SDL_Rect dst_rect = {(window_width / 2) - (int)(window_width / 2.5), y_offset, text_surface->w * zoom_scale, text_surface->h * zoom_scale};
             SDL_RenderCopy(renderer_ptr, text_texture, &src_rect, &dst_rect);
             SDL_FreeSurface(text_surface);
             SDL_DestroyTexture(text_texture);
@@ -478,10 +490,10 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
 
             SDL_Texture* text_texture = check_ptr(SDL_CreateTextureFromSurface(renderer_ptr, text_surface), "Couldn't create a SDL texture", TTF_GetError());
             SDL_Rect src_rect = {0, 0, text_surface->w, text_surface->h};
-            SDL_Rect dst_rect = {0, y_offset, text_surface->w * user_scale, text_surface->h * user_scale};
+            SDL_Rect dst_rect = {0, y_offset, text_surface->w * zoom_scale, text_surface->h * zoom_scale};
             SDL_RenderCopy(renderer_ptr, text_texture, &src_rect, &dst_rect);
 
-            y_offset += text_surface->h * user_scale;
+            y_offset += text_surface->h * zoom_scale;
 
             SDL_FreeSurface(text_surface);
             SDL_DestroyTexture(text_texture);
