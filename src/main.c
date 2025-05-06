@@ -477,6 +477,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
 
             int y_offset = 0;
 
+            // when no entries are found, show "NONE"
             if (matching_lines_curr_line_index == 0) {
                 const char* text_as_none = "NONE";
                 SDL_Color text_color = {255, 255, 255, 255};
@@ -487,38 +488,67 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
                 SDL_RenderCopy(renderer_ptr, text_texture, &src_rect, &dst_rect);
                 SDL_FreeSurface(text_surface);
                 SDL_DestroyTexture(text_texture);
-            }
-            if (first_entry_only_setting) {
-                matching_lines_curr_line_index = 1; // show only first entry
-            }
-            for (size_t i = 0; i < matching_lines_curr_line_index; i++) {
+            } else if (first_entry_only_setting) {
+                // show only first entry
+                for (size_t i = 0; i < 1; i++) {
 
-                SDL_Color text_color = {255, 255, 255, 255};
-                SDL_Surface* text_surface;
+                    SDL_Color text_color = {255, 255, 255, 255};
+                    SDL_Surface* text_surface;
 
-                if (i == 0) {
-                    char matching_lines_first_line_text[MAX_STRING_LENGTH_CAPACITY];
-                    const char* matching_lines_first_line_prefix = "Current Task: ";
+                    if (i == 0) {
+                        char matching_lines_first_line_text[MAX_STRING_LENGTH_CAPACITY];
+                        const char* matching_lines_first_line_prefix = "Current Task: ";
 
-                    // trim out the keywords
-                    for (size_t i = 0; i < keywords_count; i++) {
-                        trim_keyword_prefix(matching_lines_array[0], keywords_array[i]);
+                        // trim out the keywords
+                        for (size_t i = 0; i < keywords_count; i++) {
+                            trim_keyword_prefix(matching_lines_array[0], keywords_array[i]);
+                        }
+                        snprintf(matching_lines_first_line_text, sizeof(matching_lines_first_line_text), "%s%s", matching_lines_first_line_prefix, matching_lines_array[i]);
+                        text_surface = check_ptr(TTF_RenderText_Blended(font_ptr, matching_lines_first_line_text, text_color), "Error loading a font text surface", TTF_GetError());
+                    } else {
+                        text_surface = check_ptr(TTF_RenderText_Blended(font_ptr, matching_lines_array[i], text_color), "Error loading a font text surface", TTF_GetError());
                     }
-                    snprintf(matching_lines_first_line_text, sizeof(matching_lines_first_line_text), "%s%s", matching_lines_first_line_prefix, matching_lines_array[i]);
-                    text_surface = check_ptr(TTF_RenderText_Blended(font_ptr, matching_lines_first_line_text, text_color), "Error loading a font text surface", TTF_GetError());
-                } else {
-                    text_surface = check_ptr(TTF_RenderText_Blended(font_ptr, matching_lines_array[i], text_color), "Error loading a font text surface", TTF_GetError());
+
+                    SDL_Texture* text_texture = check_ptr(SDL_CreateTextureFromSurface(renderer_ptr, text_surface), "Couldn't create a SDL texture", TTF_GetError());
+                    SDL_Rect src_rect = {0, 0, text_surface->w, text_surface->h};
+                    SDL_Rect dst_rect = {0, y_offset, text_surface->w * zoom_scale, text_surface->h * zoom_scale};
+                    SDL_RenderCopy(renderer_ptr, text_texture, &src_rect, &dst_rect);
+
+                    y_offset += text_surface->h * zoom_scale;
+
+                    SDL_FreeSurface(text_surface);
+                    SDL_DestroyTexture(text_texture);
                 }
+            } else {
+                for (size_t i = 0; i < matching_lines_curr_line_index; i++) {
 
-                SDL_Texture* text_texture = check_ptr(SDL_CreateTextureFromSurface(renderer_ptr, text_surface), "Couldn't create a SDL texture", TTF_GetError());
-                SDL_Rect src_rect = {0, 0, text_surface->w, text_surface->h};
-                SDL_Rect dst_rect = {0, y_offset, text_surface->w * zoom_scale, text_surface->h * zoom_scale};
-                SDL_RenderCopy(renderer_ptr, text_texture, &src_rect, &dst_rect);
+                    SDL_Color text_color = {255, 255, 255, 255};
+                    SDL_Surface* text_surface;
 
-                y_offset += text_surface->h * zoom_scale;
+                    if (i == 0) {
+                        char matching_lines_first_line_text[MAX_STRING_LENGTH_CAPACITY];
+                        const char* matching_lines_first_line_prefix = "Current Task: ";
 
-                SDL_FreeSurface(text_surface);
-                SDL_DestroyTexture(text_texture);
+                        // trim out the keywords
+                        for (size_t i = 0; i < keywords_count; i++) {
+                            trim_keyword_prefix(matching_lines_array[0], keywords_array[i]);
+                        }
+                        snprintf(matching_lines_first_line_text, sizeof(matching_lines_first_line_text), "%s%s", matching_lines_first_line_prefix, matching_lines_array[i]);
+                        text_surface = check_ptr(TTF_RenderText_Blended(font_ptr, matching_lines_first_line_text, text_color), "Error loading a font text surface", TTF_GetError());
+                    } else {
+                        text_surface = check_ptr(TTF_RenderText_Blended(font_ptr, matching_lines_array[i], text_color), "Error loading a font text surface", TTF_GetError());
+                    }
+
+                    SDL_Texture* text_texture = check_ptr(SDL_CreateTextureFromSurface(renderer_ptr, text_surface), "Couldn't create a SDL texture", TTF_GetError());
+                    SDL_Rect src_rect = {0, 0, text_surface->w, text_surface->h};
+                    SDL_Rect dst_rect = {0, y_offset, text_surface->w * zoom_scale, text_surface->h * zoom_scale};
+                    SDL_RenderCopy(renderer_ptr, text_texture, &src_rect, &dst_rect);
+
+                    y_offset += text_surface->h * zoom_scale;
+
+                    SDL_FreeSurface(text_surface);
+                    SDL_DestroyTexture(text_texture);
+                }
             }
 
             SDL_RenderPresent(renderer_ptr);
