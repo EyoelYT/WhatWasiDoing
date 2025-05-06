@@ -557,6 +557,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
         SDL_Delay(SDL_DELAY_FACTOR);
 
         if (target_paths_modified(target_paths_array, target_paths_count, &last_mtime) != 0) {
+            window_should_render = true;
             DEBUG_SHOW_LOC("Read target paths from config file\n");
             matching_lines_curr_line_index = 0;
             for (size_t i = 0; i < target_paths_count; i++) {
