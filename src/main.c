@@ -62,7 +62,7 @@ void keyword_lines_into_array(char* file_path, char** destination_array, size_t*
     while (file_content_line != NULL && *destination_array_index < destination_array_max_capacity) {
         for (size_t i = 0; i < keywords_source_count; i++) {
             if (strstr(file_content_line, keywords_source_array[i])) {
-                strncpy(destination_array[*destination_array_index], file_content_line, MAX_STRING_LENGTH_CAPACITY);
+                snprintf(destination_array[*destination_array_index], MAX_STRING_LENGTH_CAPACITY, "%s", file_content_line);
                 (*destination_array_index)++;
                 DEBUG_PRINTF("%s\n", file_content_line);
             }
@@ -134,7 +134,7 @@ int conf_file_lines_into_array(const char* file_path, char** file_lines_array) {
             string_buffer[string_buffer_len - 1] = '\0';
         }
 
-        strncpy(file_lines_array[curr_line], string_buffer, MAX_STRING_LENGTH_CAPACITY);
+        snprintf(file_lines_array[curr_line], MAX_STRING_LENGTH_CAPACITY, "%s", string_buffer);
         curr_line++;
 
         if (curr_line >= MAX_LINES_IN_CONFIG_FILE) {
@@ -174,13 +174,12 @@ size_t extract_config_values(char* keyword, char** destination_array, size_t des
         char string_buffer[MAX_STRING_LENGTH_CAPACITY];
         size_t word_length = char_end_ptr - char_start_ptr;
 
-        strncpy(string_buffer, char_start_ptr, word_length); // copy string from 'start' to 'end' into buf
-        string_buffer[word_length] = '\0';
+        snprintf(string_buffer, word_length + 1, "%s", char_start_ptr);
 
         // copy the substring within quotes into the destination array
         if (destination_array_index < destination_array_length) {
             if (strstr(source_array[i], keyword) != NULL) {
-                strncpy(destination_array[destination_array_index], string_buffer, MAX_STRING_LENGTH_CAPACITY);
+                snprintf(destination_array[destination_array_index], MAX_STRING_LENGTH_CAPACITY, "%s", string_buffer);
                 keyword_index++;
                 destination_array_index++;
             }
