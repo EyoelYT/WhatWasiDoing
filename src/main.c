@@ -1,6 +1,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_keycode.h>
+#include <SDL2/SDL_messagebox.h>
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_stdinc.h>
 #include <SDL2/SDL_syswm.h>
@@ -29,6 +30,9 @@
 #define SDL_DELAY_FACTOR 256
 #define MIN_ZOOM_SCALE 0.5f
 #define MAX_ZOOM_SCALE 5.0f
+#define DEMO_TARGET_FILE "todos.org"
+#define DEMO_EXAMPLE_KEYWORD "TODO"
+#define CONFIG_FILE_NAME ".currTasks.conf"
 
 #ifdef DEBUG_MODE
     #define DEBUG_SHOW_LOC(fmt, ...) fprintf(stdout, "\n%s:%d:" CYN " %s():\n" RESET fmt, __FILE__, __LINE__, __func__, ##__VA_ARGS__)
@@ -40,7 +44,7 @@
 
 void* check_ptr(void* ptr, char* message_on_failure __attribute__((unused)), const char* error_fetcher __attribute__((unused))) {
     if (ptr == NULL) {
-        DEBUG_PRINTF("Something wrong in SDL. %s. %s\n", message_on_failure, error_fetcher);
+        DEBUG_PRINTF("Something (ptr) wrong in SDL. %s. %s\n", message_on_failure, error_fetcher);
         abort();
     }
     return ptr;
@@ -48,12 +52,24 @@ void* check_ptr(void* ptr, char* message_on_failure __attribute__((unused)), con
 
 void check_code(int code, const char* error_fetcher __attribute__((unused))) {
     if (code < 0) {
-        DEBUG_PRINTF("Something wrong in SDL. %s\n", error_fetcher);
+        DEBUG_PRINTF("Something (code) wrong in SDL. %s\n", error_fetcher);
         abort();
     }
 }
 
+bool file_exists(const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (file) {
+        fclose(file);
+        return true;
+    }
+    return false;
+}
+
 void keyword_lines_into_array(char* file_path, char** destination_array, size_t* destination_array_index, size_t destination_array_max_capacity, char** keywords_source_array, size_t keywords_source_count) {
+    if (!file_exists(file_path)) {
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "There is no 'file' set in the config file.", NULL);
+    }
     void* file_content = check_ptr(SDL_LoadFile(file_path, NULL), "Couldn't find target file..", SDL_GetError());
     char* file_content_line = strtok((char*)file_content, "\n");
 
@@ -95,29 +111,92 @@ void trim_keyword_prefix(char* text_line, char* keyword) {
     memmove(text_line, char_ptr, strlen(char_ptr) + 1);
 }
 
+void send_ok_cancel_message_box(const char* title, const char* message, const char* message_on_failure) {
+    SDL_MessageBoxButtonData buttons[2];
+
+    // FIXME: Keyboard shortcuts don't work right in WSL environment
+    buttons[0].flags = SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT;
+    buttons[0].buttonid = 0;
+    buttons[0].text = "OK";
+
+    buttons[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+    buttons[1].buttonid = 1;
+    buttons[1].text = "CANCEL";
+
+    SDL_MessageBoxData message_box_data;
+    message_box_data.flags = SDL_MESSAGEBOX_INFORMATION;
+    message_box_data.window = NULL;
+    message_box_data.title = title;
+    message_box_data.message = message;
+    message_box_data.numbuttons = 2;
+    message_box_data.buttons = buttons;
+    message_box_data.colorScheme = NULL;
+
+    int hit_button;
+    SDL_ShowMessageBox(&message_box_data, &hit_button);
+    if (hit_button != 0) {
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Exiting", message_on_failure, NULL);
+        abort();
+    }
+}
+
+void create_demo_target_file(const char* todo_file_path) {
+    if (file_exists(todo_file_path)) {
+        return;
+    }
+    send_ok_cancel_message_box("Confirm", "Create a demo \"todos.org\" file in $HOME?", "Aborting since there is no 'file' set in config");
+
+    FILE* file = check_ptr(fopen(todo_file_path, "wb"), "Error creating a file\n", SDL_GetError());
+
+    char file_content[MAX_STRING_LENGTH_CAPACITY];
+    snprintf(file_content, MAX_STRING_LENGTH_CAPACITY, "* TODO Checkout the demo file located at %s\n", todo_file_path);
+    fwrite(file_content, sizeof(char), strlen(file_content), file);
+    fclose(file);
+}
+
 FILE* create_demo_conf_file(const char* conf_file_path) {
     FILE* file = check_ptr(fopen(conf_file_path, "wb"), "Error creating a file", SDL_GetError());
 
+    const char* user_env_home = check_ptr(getenv("HOME"), "$HOME environment variable not set", SDL_GetError());
+    const char* demo_target_file = DEMO_TARGET_FILE;
+    const char* demo_example_keyword = DEMO_EXAMPLE_KEYWORD;
+
+    char f_content_0[MAX_STRING_LENGTH_CAPACITY];
+    char f_content_1[MAX_STRING_LENGTH_CAPACITY];
+    char todo_file_string[MAX_STRING_LENGTH_CAPACITY];
 #ifdef _WIN32
-    char generated_file_content[] = "file = \"C:\\Users\\USER\\todos.org\"\n"
-                                    "keyword = \"TODO\"\n";
+    snprintf(f_content_0, MAX_STRING_LENGTH_CAPACITY, "file = \"%s\\%s\"\n", user_env_home, demo_target_file);
+    snprintf(f_content_1, MAX_STRING_LENGTH_CAPACITY, "keyword = \"%s\"\n", demo_example_keyword);
+    snprintf(todo_file_string, MAX_STRING_LENGTH_CAPACITY, "\\%s", demo_target_file);
 #else
-    char generated_file_content[] = "file = \"/home/USER/todos.org\"\n"
-                                    "keyword = \"TODO\"\n";
+    snprintf(f_content_0, MAX_STRING_LENGTH_CAPACITY, "file = \"%s/%s\"\n", user_env_home, demo_target_file);
+    snprintf(f_content_1, MAX_STRING_LENGTH_CAPACITY, "keyword = \"%s\"\n", demo_example_keyword);
+    snprintf(todo_file_string, MAX_STRING_LENGTH_CAPACITY, "/%s", demo_target_file);
 #endif
-    size_t generated_file_content_size = sizeof(generated_file_content);
 
-    fwrite(generated_file_content, sizeof(generated_file_content[0]), generated_file_content_size, file);
+    size_t generated_file_content_size = strlen(f_content_0) + strlen(f_content_1) + 1; //  +1 to add space for '\0'
 
+    char generated_file_content[generated_file_content_size];
+    snprintf(generated_file_content, generated_file_content_size, "%s%s", f_content_0, f_content_1);
+
+    fwrite(generated_file_content, sizeof(char), strlen(generated_file_content), file);
     fclose(file);
+
+    char todo_file_path[MAX_STRING_LENGTH_CAPACITY];
+    snprintf(todo_file_path, strlen(todo_file_string) + strlen(user_env_home) + 1, "%s%s", user_env_home, todo_file_string); // +1 to add space for '\0'
+    create_demo_target_file(todo_file_path);
     return fopen(conf_file_path, "r");
 }
 
-int conf_file_lines_into_array(const char* file_path, char** file_lines_array) {
+int conf_file_lines_into_array(const char* file_path, char** file_lines_array, const char* conf_file_filename) {
     // Get config file vars
+    char message[MAX_STRING_LENGTH_CAPACITY];
+    snprintf(message, MAX_STRING_LENGTH_CAPACITY, "Create a \"%s\" config file in $HOME?", conf_file_filename);
+
     FILE* file = fopen(file_path, "r");
     if (!file) {
-        DEBUG_SHOW_LOC("File '%s' not found. Creating demo file.\n", file_path);
+        DEBUG_SHOW_LOC("File '%s' not found. Trying to create a demo file.\n", file_path);
+        send_ok_cancel_message_box("Confirm", message, "Aborting since there is no config file.");
         file = check_ptr(create_demo_conf_file(file_path), "Could not create the demo config file", SDL_GetError());
     }
 
@@ -284,21 +363,19 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
     initialize_string_array(first_entry_only_array, SINGLE_CONFIG_VALUE_SIZE, MAX_STRING_LENGTH_CAPACITY);
 
     const char* window_title = "WhatWasiDoing";
-#ifdef _WIN32
-    const char* conf_file_filename = "\\.currTasks.conf";
-#else
-    const char* conf_file_filename = "/.currTasks.conf";
-#endif
+    const char* conf_file_filename = CONFIG_FILE_NAME;
 
     // Get the user's home dir
-    const char* user_env_home = getenv("HOME");
-    if (!user_env_home) {
-        perror("Error getting home directory");
-        return -1;
-    }
+    const char* user_env_home = check_ptr(getenv("HOME"), "Error getting $HOME envvar.", SDL_GetError());
+
     // Get the full file path to the config file (join the strings)
-    snprintf(conf_file_path, sizeof(conf_file_path), "%s%s", user_env_home, conf_file_filename);
-    conf_file_line_count = conf_file_lines_into_array(conf_file_path, conf_file_lines_array);
+#ifdef _WIN32
+    snprintf(conf_file_path, sizeof(conf_file_path), "%s\\%s", user_env_home, conf_file_filename);
+#else
+    snprintf(conf_file_path, sizeof(conf_file_path), "%s/%s", user_env_home, conf_file_filename);
+#endif
+
+    conf_file_line_count = conf_file_lines_into_array(conf_file_path, conf_file_lines_array, conf_file_filename);
 
     target_paths_count = extract_config_values("file", target_paths_array, MAX_TARGET_PATHS, conf_file_lines_array, conf_file_line_count);
     keywords_count = extract_config_values("keyword", keywords_array, MAX_KEYWORDS, conf_file_lines_array, conf_file_line_count);
