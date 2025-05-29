@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <time.h>
 
 #define CYN "\x1B[36m"
 #define YEL "\x1B[33m"
@@ -68,7 +69,8 @@ bool file_exists(const char* filename) {
 
 void keyword_lines_into_array(char* file_path, char** destination_array, size_t* destination_array_index, size_t destination_array_max_capacity, char** keywords_source_array, size_t keywords_source_count) {
     if (!file_exists(file_path)) {
-        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", "There is no 'file' set in the config file.", NULL);
+        DEBUG_SHOW_LOC("SKIPPING file %s since it doesn't exist.\n", file_path);
+        return;
     }
     void* file_content = check_ptr(SDL_LoadFile(file_path, NULL), "Couldn't find target file..", SDL_GetError());
     char* file_content_line = strtok((char*)file_content, "\n");
@@ -189,48 +191,52 @@ FILE* create_demo_conf_file(const char* conf_file_path) {
 }
 
 int conf_file_lines_into_array(const char* file_path, char** file_lines_array, const char* conf_file_filename) {
-    // Get config file vars
-    char message[MAX_STRING_LENGTH_CAPACITY];
-    snprintf(message, MAX_STRING_LENGTH_CAPACITY, "Create a \"%s\" config file in $HOME?", conf_file_filename);
 
     FILE* file = fopen(file_path, "r");
+
     if (!file) {
+        char message[MAX_STRING_LENGTH_CAPACITY];
+        snprintf(message, MAX_STRING_LENGTH_CAPACITY, "Create a \"%s\" config file in $HOME?", conf_file_filename);
+
         DEBUG_SHOW_LOC("File '%s' not found. Trying to create a demo file.\n", file_path);
+        // Get config file vars
         send_ok_cancel_message_box("Confirm", message, "Aborting since there is no config file.");
         file = check_ptr(create_demo_conf_file(file_path), "Could not create the demo config file", SDL_GetError());
     }
 
     size_t curr_line = 0;
 
-    char string_buffer[MAX_STRING_LENGTH_CAPACITY];
+    if (file) {
+        char string_buffer[MAX_STRING_LENGTH_CAPACITY];
 
-    // for every line from configuration file into buffer
-    while (fgets(string_buffer, sizeof(string_buffer), file)) {
+        // for every line from configuration file into buffer
+        while (fgets(string_buffer, sizeof(string_buffer), file)) {
 
-        // if length of buffer > 1 and buffer has a '\n', allocate a '\0' at the end
-        size_t string_buffer_len = strlen(string_buffer);
-        if (string_buffer_len > 0 && string_buffer[string_buffer_len - 1] == '\n') {
-            string_buffer[string_buffer_len - 1] = '\0';
+            // if length of buffer > 1 and buffer has a '\n', allocate a '\0' at the end
+            size_t string_buffer_len = strlen(string_buffer);
+            if (string_buffer_len > 0 && string_buffer[string_buffer_len - 1] == '\n') {
+                string_buffer[string_buffer_len - 1] = '\0';
+            }
+
+            snprintf(file_lines_array[curr_line], MAX_STRING_LENGTH_CAPACITY, "%s", string_buffer);
+            curr_line++;
+
+            if (curr_line >= MAX_LINES_IN_CONFIG_FILE) {
+                DEBUG_SHOW_LOC("Warning: Reached maximum number of lines in config file: %d max lines allowed.\n", MAX_LINES_IN_CONFIG_FILE);
+                break;
+            }
         }
 
-        snprintf(file_lines_array[curr_line], MAX_STRING_LENGTH_CAPACITY, "%s", string_buffer);
-        curr_line++;
-
-        if (curr_line >= MAX_LINES_IN_CONFIG_FILE) {
-            DEBUG_SHOW_LOC("Warning: Reached maximum number of lines in config file: %d max lines allowed.\n", MAX_LINES_IN_CONFIG_FILE);
-            break;
+        // Show the lines that are read
+        DEBUG_SHOW_LOC("Lines read from '%s':\n", file_path);
+        for (size_t i = 0; i < curr_line; i++) {
+            DEBUG_PRINTF("%s:%zu: line read: %s\n", file_path, i + 1, file_lines_array[i]);
         }
+
+        fclose(file);
     }
 
-    // Show the lines that are read
-    DEBUG_SHOW_LOC("Lines read from '%s':\n", file_path);
-    for (size_t i = 0; i < curr_line; i++) {
-        DEBUG_PRINTF("%s:%zu: line read: %s\n", file_path, i + 1, file_lines_array[i]);
-    }
-
-    fclose(file);
-
-    // return the number of lines
+    // return the number of lines found
     return curr_line;
 }
 
@@ -300,9 +306,21 @@ void destroy_string_array(char** array, size_t array_max_size) {
     }
 }
 
-int target_paths_modified(char** target_paths_array, size_t target_paths_count, time_t* last_mtime) {
+int target_paths_modified(char** target_paths_array, size_t target_paths_count, time_t* last_mtime, bool* target_path_nonexistence_array) {
+    // track the latest modification time from all of the file paths
     time_t latest_mtime = 0;
+
     for (size_t i = 0; i < target_paths_count; i++) {
+        if (!file_exists(target_paths_array[i]) && !target_path_nonexistence_array[i]) {
+            target_path_nonexistence_array[i] = true;
+            time_t now = time(NULL); // current time
+            latest_mtime = now;
+            break;
+        }
+        if (!file_exists(target_paths_array[i]) && target_path_nonexistence_array[i]) {
+            continue;
+        }
+
         struct stat file_stat;
         check_code(stat(target_paths_array[i], &file_stat), "File modification check failed.");
 
@@ -311,7 +329,39 @@ int target_paths_modified(char** target_paths_array, size_t target_paths_count, 
         }
     }
 
-    int modified = (*last_mtime) != latest_mtime;
+    int modified = (*last_mtime) < latest_mtime;
+    if (modified) {
+        *last_mtime = latest_mtime;
+    }
+
+    return modified;
+}
+
+int path_modified(char* file_path, time_t* last_mtime, bool* conf_file_existence, size_t* conf_file_line_count) {
+    // track the latest modification time from all of the file paths
+    time_t latest_mtime = 0;
+    // if first time file unexisted
+    if (!file_exists(file_path) && *conf_file_existence) {
+        time_t now = time(NULL); // current time
+        latest_mtime = now;
+        *conf_file_existence = false;
+        *conf_file_line_count = 0;
+    // if previously nonexisted, don't affect the latest modified time
+    } else if (!file_exists(file_path) && !*conf_file_existence) {
+        *conf_file_line_count = 0;
+        latest_mtime = *last_mtime;
+     // if the file exists
+    } else if (file_exists(file_path)) {
+        *conf_file_existence = true;
+        struct stat file_stat;
+        check_code(stat(file_path, &file_stat), "File modification check failed.");
+
+        if (file_stat.st_mtime > latest_mtime) { // this is not getting true when config file is created??
+            latest_mtime = file_stat.st_mtime;
+        }
+    }
+
+    int modified = (*last_mtime) < latest_mtime;
     if (modified) {
         *last_mtime = latest_mtime;
     }
@@ -333,6 +383,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
 
     char* keywords_array[MAX_KEYWORDS];
     char* target_paths_array[MAX_TARGET_PATHS];
+    bool target_path_nonexistence_array[MAX_TARGET_PATHS];
     char* conf_file_lines_array[MAX_LINES_IN_CONFIG_FILE];
     char* matching_lines_array[MAX_MATCHING_LINES_CAPACITY];
     char* window_height_array[SINGLE_CONFIG_VALUE_SIZE];
@@ -379,23 +430,35 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
 
     target_paths_count = extract_config_values("file", target_paths_array, MAX_TARGET_PATHS, conf_file_lines_array, conf_file_line_count);
     keywords_count = extract_config_values("keyword", keywords_array, MAX_KEYWORDS, conf_file_lines_array, conf_file_line_count);
+    first_entry_only_count = extract_config_values("first_entry_only", first_entry_only_array, SINGLE_CONFIG_VALUE_SIZE, conf_file_lines_array, conf_file_line_count);
+
     window_x_position_count = extract_config_values("initial_window_x", window_x_position_array, SINGLE_CONFIG_VALUE_SIZE, conf_file_lines_array, conf_file_line_count);
     window_y_position_count = extract_config_values("initial_window_y", window_y_position_array, SINGLE_CONFIG_VALUE_SIZE, conf_file_lines_array, conf_file_line_count);
     window_width_count = extract_config_values("initial_window_width", window_width_array, SINGLE_CONFIG_VALUE_SIZE, conf_file_lines_array, conf_file_line_count);
     window_height_count = extract_config_values("initial_window_height", window_height_array, SINGLE_CONFIG_VALUE_SIZE, conf_file_lines_array, conf_file_line_count);
-    first_entry_only_count = extract_config_values("first_entry_only", first_entry_only_array, SINGLE_CONFIG_VALUE_SIZE, conf_file_lines_array, conf_file_line_count);
 
-    DEBUG_SHOW_LOC("Read target paths from config file\n");
     matching_lines_curr_line_index = 0;
-    time_t last_mtime = 0;
+    bool conf_file_existence = true;
+    time_t conf_file_last_mtime = 0;
+    {
+        struct stat file_stat;
+        check_code(stat(conf_file_path, &file_stat), "File modification check failed.");
+        if (file_stat.st_mtime > conf_file_last_mtime) {
+            conf_file_last_mtime = file_stat.st_mtime;
+        }
+    }
+    time_t target_paths_last_mtime = 0;
+    DEBUG_SHOW_LOC("Read target paths from config file, and keyword lines from the target paths.\n");
     for (size_t i = 0; i < target_paths_count; i++) {
         DEBUG_PRINTF(YEL "%zu: %s " RESET "\n", i + 1, target_paths_array[i]);
         keyword_lines_into_array(target_paths_array[i], matching_lines_array, &matching_lines_curr_line_index, MAX_MATCHING_LINES_CAPACITY, keywords_array, keywords_count);
 
-        struct stat file_stat;
-        check_code(stat(target_paths_array[i], &file_stat), "File modification check failed.");
-        if (file_stat.st_mtime > last_mtime) {
-            last_mtime = file_stat.st_mtime;
+        if (i > 0) { // check if there are files in the first place
+            struct stat file_stat;
+            check_code(stat(target_paths_array[i], &file_stat), "File modification check failed.");
+            if (file_stat.st_mtime > target_paths_last_mtime) {
+                target_paths_last_mtime = file_stat.st_mtime;
+            }
         }
     }
 
@@ -632,7 +695,29 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
         }
         SDL_Delay(SDL_DELAY_FACTOR);
 
-        if (target_paths_modified(target_paths_array, target_paths_count, &last_mtime) != 0) {
+        if (path_modified(conf_file_path, &conf_file_last_mtime, &conf_file_existence, &conf_file_line_count) != 0) {
+            window_should_render = true;
+            if (conf_file_existence) {
+                conf_file_line_count = conf_file_lines_into_array(conf_file_path, conf_file_lines_array, conf_file_filename);
+                target_paths_count = extract_config_values("file", target_paths_array, MAX_TARGET_PATHS, conf_file_lines_array, conf_file_line_count);
+                keywords_count = extract_config_values("keyword", keywords_array, MAX_KEYWORDS, conf_file_lines_array, conf_file_line_count);
+                first_entry_only_count = extract_config_values("first_entry_only", first_entry_only_array, SINGLE_CONFIG_VALUE_SIZE, conf_file_lines_array, conf_file_line_count);
+                first_entry_only_setting = parse_single_user_value_bool(first_entry_only_array, first_entry_only_count, default_show_first_entry_only);
+            } else {
+                conf_file_line_count = 0;
+                target_paths_count = extract_config_values("file", target_paths_array, MAX_TARGET_PATHS, conf_file_lines_array, conf_file_line_count);
+                keywords_count = extract_config_values("keyword", keywords_array, MAX_KEYWORDS, conf_file_lines_array, conf_file_line_count);
+                first_entry_only_count = extract_config_values("first_entry_only", first_entry_only_array, SINGLE_CONFIG_VALUE_SIZE, conf_file_lines_array, conf_file_line_count);
+                first_entry_only_setting = parse_single_user_value_bool(first_entry_only_array, first_entry_only_count, default_show_first_entry_only);
+            }
+
+            DEBUG_SHOW_LOC("Read target paths from config file\n");
+            matching_lines_curr_line_index = 0;
+            for (size_t i = 0; i < target_paths_count; i++) {
+                DEBUG_PRINTF(YEL "%zu: %s" RESET "\n", i + 1, target_paths_array[i]);
+                keyword_lines_into_array(target_paths_array[i], matching_lines_array, &matching_lines_curr_line_index, MAX_MATCHING_LINES_CAPACITY, keywords_array, keywords_count);
+            }
+        } else if (target_paths_modified(target_paths_array, target_paths_count, &target_paths_last_mtime, target_path_nonexistence_array) != 0) {
             window_should_render = true;
             DEBUG_SHOW_LOC("Read target paths from config file\n");
             matching_lines_curr_line_index = 0;
