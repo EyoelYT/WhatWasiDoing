@@ -241,29 +241,29 @@ size_t extract_config_values(char* keyword, char** destination_array, size_t des
 
     for (size_t i = 0; i < source_array_length; i++) {
 
-        char* char_start_ptr = strchr(source_array[i], '"'); // first quote
-        if (!char_start_ptr)
-            continue;
-        char_start_ptr++; // skip the quote
+        // copy the substring within quotes if it is to the right the keyword into the destination array
+        if (destination_array_index < destination_array_length && strstr(source_array[i], keyword) != NULL) {
 
-        char* char_end_ptr = strchr(char_start_ptr, '"'); // matching second quote
-        if (!char_end_ptr)
-            continue;
+            char* char_start_ptr = strchr(source_array[i], '"'); // first quote
+            if (!char_start_ptr)
+                continue;
+            char_start_ptr++; // skip the quote
 
-        char string_buffer[MAX_STRING_LENGTH_CAPACITY];
-        size_t word_length = char_end_ptr - char_start_ptr;
+            char* char_end_ptr = strchr(char_start_ptr, '"'); // matching second quote
+            if (!char_end_ptr)
+                continue;
 
-        snprintf(string_buffer, word_length + 1, "%s", char_start_ptr);
+            char string_buffer[MAX_STRING_LENGTH_CAPACITY];
+            size_t word_length = char_end_ptr - char_start_ptr;
+            snprintf(string_buffer, word_length + 1, "%s", char_start_ptr);
 
-        // copy the substring within quotes into the destination array
-        if (destination_array_index < destination_array_length) {
-            if (strstr(source_array[i], keyword) != NULL) {
-                snprintf(destination_array[destination_array_index], MAX_STRING_LENGTH_CAPACITY, "%s", string_buffer);
-                keyword_index++;
-                destination_array_index++;
-            }
+            snprintf(destination_array[destination_array_index], MAX_STRING_LENGTH_CAPACITY, "%s", string_buffer);
+
+            keyword_index++;
+            destination_array_index++;
         }
     }
+
     return keyword_index;
 }
 
