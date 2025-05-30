@@ -240,15 +240,23 @@ int conf_file_lines_into_array(const char* file_path, char** file_lines_array, c
     return curr_line;
 }
 
+bool array_contains_string(char** array, size_t array_size, char* string) {
+    for (size_t i = 0; i < array_size; i++) {
+        if (strstr(array[i], string)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 size_t extract_config_values(char* keyword, char** destination_array, size_t destination_array_length, char** source_array, size_t source_array_length) {
 
-    size_t keyword_index = 0;
     size_t destination_array_index = 0;
 
     for (size_t i = 0; i < source_array_length; i++) {
 
-        // copy the substring within quotes if it is to the right the keyword into the destination array
-        if (destination_array_index < destination_array_length && strstr(source_array[i], keyword) != NULL) {
+        // copy the substring within quotes if it is to the right the keyword (into the destination array)
+        if (destination_array_index < destination_array_length && strstr(source_array[i], keyword) != NULL) { // and keyword not in source array
 
             char* char_start_ptr = strchr(source_array[i], '"'); // first quote
             if (!char_start_ptr)
@@ -259,18 +267,19 @@ size_t extract_config_values(char* keyword, char** destination_array, size_t des
             if (!char_end_ptr)
                 continue;
 
-            char string_buffer[MAX_STRING_LENGTH_CAPACITY];
+            char keyword_value_string[MAX_STRING_LENGTH_CAPACITY];
             size_t word_length = char_end_ptr - char_start_ptr;
-            snprintf(string_buffer, word_length + 1, "%s", char_start_ptr);
+            snprintf(keyword_value_string, word_length + 1, "%s", char_start_ptr);
 
-            snprintf(destination_array[destination_array_index], MAX_STRING_LENGTH_CAPACITY, "%s", string_buffer);
+            if (!array_contains_string(destination_array, destination_array_index, keyword_value_string)) { // avoid duplicates
+                snprintf(destination_array[destination_array_index], MAX_STRING_LENGTH_CAPACITY, "%s", keyword_value_string);
+            }
 
-            keyword_index++;
             destination_array_index++;
         }
     }
 
-    return keyword_index;
+    return destination_array_index;
 }
 
 int parse_single_user_value_int(char** user_value_array, size_t user_value_count, int default_value) {
@@ -346,12 +355,10 @@ int path_modified(char* file_path, time_t* last_mtime, bool* conf_file_existence
         latest_mtime = now;
         *conf_file_existence = false;
         *conf_file_line_count = 0;
-    // if previously nonexisted, don't affect the latest modified time
-    } else if (!file_exists(file_path) && !*conf_file_existence) {
+    } else if (!file_exists(file_path) && !*conf_file_existence) { // if previously nonexisted, don't affect the latest modified time
         *conf_file_line_count = 0;
         latest_mtime = *last_mtime;
-     // if the file exists
-    } else if (file_exists(file_path)) {
+    } else if (file_exists(file_path)) { // if the file exists
         *conf_file_existence = true;
         struct stat file_stat;
         check_code(stat(file_path, &file_stat), "File modification check failed.");
