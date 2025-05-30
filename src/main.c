@@ -543,13 +543,13 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
             case SDL_KEYDOWN: {
                 window_should_render = true;
                 if (sdl_events.key.keysym.sym == SDLK_r && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
-                    bg_color.r -= 16;
+                    bg_color.r -= COLOR_CHANGE_FACTOR;
                 } else if (sdl_events.key.keysym.sym == SDLK_g && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
-                    bg_color.g -= 16;
+                    bg_color.g -= COLOR_CHANGE_FACTOR;
                 } else if (sdl_events.key.keysym.sym == SDLK_b && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
-                    bg_color.b -= 16;
+                    bg_color.b -= COLOR_CHANGE_FACTOR;
                 } else if (sdl_events.key.keysym.sym == SDLK_a && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
-                    bg_color.a -= 16;
+                    bg_color.a -= COLOR_CHANGE_FACTOR;
                 } else if (sdl_events.key.keysym.sym == SDLK_UP && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
                     user_entry_offset -= 1;
                 } else if (sdl_events.key.keysym.sym == SDLK_DOWN && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
@@ -567,19 +567,19 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
                         break;
                     }
                     case SDLK_r: {
-                        bg_color.r += 16;
+                        bg_color.r += COLOR_CHANGE_FACTOR;
                         break;
                     }
                     case SDLK_g: {
-                        bg_color.g += 16;
+                        bg_color.g += COLOR_CHANGE_FACTOR;
                         break;
                     }
                     case SDLK_b: {
-                        bg_color.b += 16;
+                        bg_color.b += COLOR_CHANGE_FACTOR;
                         break;
                     }
                     case SDLK_a: {
-                        bg_color.a += 16;
+                        bg_color.a += COLOR_CHANGE_FACTOR;
                         break;
                     }
                     case SDLK_t: {
