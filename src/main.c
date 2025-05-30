@@ -499,7 +499,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
     const int default_window_height = 50;
     const int default_window_x_position = (user_display_mode_info.w / 2) - (default_window_width / 2); // center - half-width
     const int default_window_y_position = user_display_mode_info.h - default_window_height;
-    const bool default_show_first_entry_only = false;
+    const bool default_show_first_entry_only = true;
 
     int window_width = parse_single_user_value_int(window_width_array, window_width_count, default_window_width);
     int window_height = parse_single_user_value_int(window_height_array, window_height_count, default_window_height);                 // height downwards
