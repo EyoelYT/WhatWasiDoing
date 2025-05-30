@@ -143,6 +143,21 @@ You can check where your `home` folder is using:
 </tr>
 
 <tr>
+<td class="org-left">Shift up-arrow</td>
+<td class="org-left">Cycle down the entries</td>
+</tr>
+
+<tr>
+<td class="org-left">Shift down-arrow</td>
+<td class="org-left">Cycle up the entries</td>
+</tr>
+
+<tr>
+<td class="org-left">0</td>
+<td class="org-left">Reset entry cycle</td>
+</tr>
+
+<tr>
 <td class="org-left">Ctrl  =</td>
 <td class="org-left">Zoom In</td>
 </tr>

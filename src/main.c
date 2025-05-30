@@ -379,6 +379,19 @@ float clamp(float value, float min, float max) {
     }
 }
 
+size_t calculate_user_entry_offset(size_t default_value, int entry_offset, size_t entry_count) {
+    // (sum % chice_count) to make the result cycle around
+    long idx = (long)default_value + (long)entry_offset;
+    long n = (long)entry_count;
+
+    // bring the value into [0 .. n-1]
+    idx %= n;
+    if (idx < 0)
+        idx += n; // make positive
+
+    return (size_t)idx;
+}
+
 int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused))) {
 
     char* keywords_array[MAX_KEYWORDS];
@@ -509,6 +522,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
     SDL_Renderer* renderer_ptr = check_ptr(SDL_CreateRenderer(window_ptr, -1, sdl_renderer_flags), "Couldn't create an SDL renderer", SDL_GetError());
 
     DEBUG_SHOW_LOC("Entering SDL Event Loop\n");
+    int user_entry_offset = 0;
     bool window_should_run = true;
     bool window_should_render = false;
     while (window_should_run) {
@@ -536,6 +550,10 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
                     bg_color.b -= 16;
                 } else if (sdl_events.key.keysym.sym == SDLK_a && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
                     bg_color.a -= 16;
+                } else if (sdl_events.key.keysym.sym == SDLK_UP && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
+                    user_entry_offset -= 1;
+                } else if (sdl_events.key.keysym.sym == SDLK_DOWN && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
+                    user_entry_offset += 1;
                 } else if (sdl_events.key.keysym.sym == SDLK_EQUALS && (sdl_events.key.keysym.mod & KMOD_CTRL)) {
                     zoom_scale = clamp(zoom_scale + (ZOOM_SCALE_FACTOR * zoom_scale), MIN_ZOOM_SCALE, MAX_ZOOM_SCALE);
                 } else if (sdl_events.key.keysym.sym == SDLK_MINUS && (sdl_events.key.keysym.mod & KMOD_CTRL)) {
@@ -544,6 +562,10 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
                     zoom_scale = 1.0;
                 } else {
                     switch (sdl_events.key.keysym.sym) {
+                    case SDLK_0: {
+                        user_entry_offset = 0;
+                        break;
+                    }
                     case SDLK_r: {
                         bg_color.r += 16;
                         break;
@@ -621,6 +643,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
                 const char* text_as_none = "NONE";
                 SDL_Color text_color = {255, 255, 255, 255};
                 SDL_Surface* text_surface = TTF_RenderText_Blended(font_ptr, text_as_none, text_color);
+
                 SDL_Texture* text_texture = SDL_CreateTextureFromSurface(renderer_ptr, text_surface);
                 SDL_Rect src_rect = {0, 0, text_surface->w, text_surface->h};
                 SDL_Rect dst_rect = {(window_width / 2) - (int)(window_width / 2.5), y_offset, text_surface->w * zoom_scale, text_surface->h * zoom_scale};
@@ -633,19 +656,20 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
 
                     SDL_Color text_color = {255, 255, 255, 255};
                     SDL_Surface* text_surface;
+                    size_t matching_lines_array_user_adjusted_idx = calculate_user_entry_offset(i, user_entry_offset, matching_lines_curr_line_index);
 
                     if (i == 0) {
                         char matching_lines_first_line_text[MAX_STRING_LENGTH_CAPACITY];
                         const char* matching_lines_first_line_prefix = "Current Task: ";
 
                         // trim out the keywords
-                        for (size_t i = 0; i < keywords_count; i++) {
-                            trim_keyword_prefix(matching_lines_array[0], keywords_array[i]);
+                        for (size_t j = 0; j < keywords_count; j++) {
+                            trim_keyword_prefix(matching_lines_array[matching_lines_array_user_adjusted_idx], keywords_array[j]);
                         }
-                        snprintf(matching_lines_first_line_text, sizeof(matching_lines_first_line_text), "%s%s", matching_lines_first_line_prefix, matching_lines_array[i]);
+                        snprintf(matching_lines_first_line_text, sizeof(matching_lines_first_line_text), "%s%s", matching_lines_first_line_prefix, matching_lines_array[matching_lines_array_user_adjusted_idx]);
                         text_surface = check_ptr(TTF_RenderText_Blended(font_ptr, matching_lines_first_line_text, text_color), "Error loading a font text surface", TTF_GetError());
                     } else {
-                        text_surface = check_ptr(TTF_RenderText_Blended(font_ptr, matching_lines_array[i], text_color), "Error loading a font text surface", TTF_GetError());
+                        text_surface = check_ptr(TTF_RenderText_Blended(font_ptr, matching_lines_array[matching_lines_array_user_adjusted_idx], text_color), "Error loading a font text surface", TTF_GetError());
                     }
 
                     SDL_Texture* text_texture = check_ptr(SDL_CreateTextureFromSurface(renderer_ptr, text_surface), "Couldn't create a SDL texture", TTF_GetError());
@@ -658,24 +682,25 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
                     SDL_FreeSurface(text_surface);
                     SDL_DestroyTexture(text_texture);
                 }
-            } else {
+            } else { // iterate over all of them
                 for (size_t i = 0; i < matching_lines_curr_line_index; i++) {
 
                     SDL_Color text_color = {255, 255, 255, 255};
                     SDL_Surface* text_surface;
+                    size_t matching_lines_array_user_adjusted_idx = calculate_user_entry_offset(i, user_entry_offset, matching_lines_curr_line_index);
 
-                    if (i == 0) {
+                    if (i == 0) { // first shown entry
                         char matching_lines_first_line_text[MAX_STRING_LENGTH_CAPACITY];
                         const char* matching_lines_first_line_prefix = "Current Task: ";
 
                         // trim out the keywords
-                        for (size_t i = 0; i < keywords_count; i++) {
-                            trim_keyword_prefix(matching_lines_array[0], keywords_array[i]);
+                        for (size_t j = 0; j < keywords_count; j++) {
+                            trim_keyword_prefix(matching_lines_array[matching_lines_array_user_adjusted_idx], keywords_array[j]);
                         }
-                        snprintf(matching_lines_first_line_text, sizeof(matching_lines_first_line_text), "%s%s", matching_lines_first_line_prefix, matching_lines_array[i]);
+                        snprintf(matching_lines_first_line_text, sizeof(matching_lines_first_line_text), "%s%s", matching_lines_first_line_prefix, matching_lines_array[matching_lines_array_user_adjusted_idx]);
                         text_surface = check_ptr(TTF_RenderText_Blended(font_ptr, matching_lines_first_line_text, text_color), "Error loading a font text surface", TTF_GetError());
                     } else {
-                        text_surface = check_ptr(TTF_RenderText_Blended(font_ptr, matching_lines_array[i], text_color), "Error loading a font text surface", TTF_GetError());
+                        text_surface = check_ptr(TTF_RenderText_Blended(font_ptr, matching_lines_array[matching_lines_array_user_adjusted_idx], text_color), "Error loading a font text surface", TTF_GetError());
                     }
 
                     SDL_Texture* text_texture = check_ptr(SDL_CreateTextureFromSurface(renderer_ptr, text_surface), "Couldn't create a SDL texture", TTF_GetError());
