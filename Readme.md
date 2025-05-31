@@ -129,6 +129,11 @@ You can check where your `home` folder is using:
 </tr>
 
 <tr>
+<td class="org-left">c</td>
+<td class="org-left">Reload config</td>
+</tr>
+
+<tr>
 <td class="org-left">Shift r</td>
 <td class="org-left">Decrease red background color component</td>
 </tr>

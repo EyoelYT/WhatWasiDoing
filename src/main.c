@@ -532,6 +532,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
     int user_entry_offset = 0;
     bool window_should_run = true;
     bool window_should_render = false;
+    bool config_file_should_be_read = false;
     while (window_should_run) {
         SDL_Event sdl_events;
         while (SDL_PollEvent(&sdl_events)) {
@@ -571,6 +572,10 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
                     switch (sdl_events.key.keysym.sym) {
                     case SDLK_0: {
                         user_entry_offset = 0;
+                        break;
+                    }
+                    case SDLK_c: {
+                        config_file_should_be_read = true;
                         break;
                     }
                     case SDLK_r: {
@@ -727,8 +732,9 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
         }
         SDL_Delay(SDL_DELAY_FACTOR);
 
-        if (path_modified(conf_file_path, &conf_file_last_mtime, &conf_file_existence, &conf_file_line_count) != 0) {
+        if (path_modified(conf_file_path, &conf_file_last_mtime, &conf_file_existence, &conf_file_line_count) != 0 || config_file_should_be_read) {
             window_should_render = true;
+            config_file_should_be_read = false;
             if (conf_file_existence) {
                 conf_file_line_count = conf_file_lines_into_array(conf_file_path, conf_file_lines_array, conf_file_filename);
                 target_paths_count = extract_config_values("file", target_paths_array, MAX_TARGET_PATHS, conf_file_lines_array, conf_file_line_count);
