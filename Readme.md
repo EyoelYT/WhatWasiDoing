@@ -66,6 +66,7 @@ Create a `.currTasks.conf` file in your home folder with the following in it:
     initial_window_x = "10"
     initial_window_y = "10"
     first_entry_only = "false"
+    trim_out_keywords = "true"
 
 -   NOTE: The `file` and `keyword` entries are *required*.
 -   You can specify multiple `files` and `keywords`.

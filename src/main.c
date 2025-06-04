@@ -411,6 +411,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
     char* window_x_position_array[SINGLE_CONFIG_VALUE_SIZE];
     char* window_y_position_array[SINGLE_CONFIG_VALUE_SIZE];
     char* first_entry_only_array[SINGLE_CONFIG_VALUE_SIZE];
+    char* trim_out_keywords_array[SINGLE_CONFIG_VALUE_SIZE];
     char conf_file_path[MAX_STRING_LENGTH_CAPACITY];
     size_t keywords_count;
     size_t target_paths_count;
@@ -421,6 +422,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
     size_t window_x_position_count;
     size_t window_y_position_count;
     size_t first_entry_only_count;
+    size_t trim_out_keywords_count;
     SDL_Color bg_color = {24, 128, 64, 240};
 
     initialize_string_array(keywords_array, MAX_KEYWORDS, MAX_STRING_LENGTH_CAPACITY);
@@ -432,6 +434,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
     initialize_string_array(window_x_position_array, SINGLE_CONFIG_VALUE_SIZE, MAX_STRING_LENGTH_CAPACITY);
     initialize_string_array(window_y_position_array, SINGLE_CONFIG_VALUE_SIZE, MAX_STRING_LENGTH_CAPACITY);
     initialize_string_array(first_entry_only_array, SINGLE_CONFIG_VALUE_SIZE, MAX_STRING_LENGTH_CAPACITY);
+    initialize_string_array(trim_out_keywords_array, SINGLE_CONFIG_VALUE_SIZE, MAX_STRING_LENGTH_CAPACITY);
 
     const char* window_title = "WhatWasiDoing";
     const char* conf_file_filename = CONFIG_FILE_NAME;
@@ -451,6 +454,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
     target_paths_count = extract_config_values("file", target_paths_array, MAX_TARGET_PATHS, conf_file_lines_array, conf_file_line_count);
     keywords_count = extract_config_values("keyword", keywords_array, MAX_KEYWORDS, conf_file_lines_array, conf_file_line_count);
     first_entry_only_count = extract_config_values("first_entry_only", first_entry_only_array, SINGLE_CONFIG_VALUE_SIZE, conf_file_lines_array, conf_file_line_count);
+    trim_out_keywords_count = extract_config_values("trim_out_keywords", trim_out_keywords_array, SINGLE_CONFIG_VALUE_SIZE, conf_file_lines_array, conf_file_line_count);
 
     window_x_position_count = extract_config_values("initial_window_x", window_x_position_array, SINGLE_CONFIG_VALUE_SIZE, conf_file_lines_array, conf_file_line_count);
     window_y_position_count = extract_config_values("initial_window_y", window_y_position_array, SINGLE_CONFIG_VALUE_SIZE, conf_file_lines_array, conf_file_line_count);
@@ -507,12 +511,14 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
     const int default_window_x_position = (user_display_mode_info.w / 2) - (default_window_width / 2); // center - half-width
     const int default_window_y_position = user_display_mode_info.h - default_window_height;
     const bool default_show_first_entry_only = true;
+    const bool default_trim_out_keywords = false;
 
     int window_width = parse_single_user_value_int(window_width_array, window_width_count, default_window_width);
     int window_height = parse_single_user_value_int(window_height_array, window_height_count, default_window_height);                 // height downwards
     int window_position_x = parse_single_user_value_int(window_x_position_array, window_x_position_count, default_window_x_position); // left border position
     int window_position_y = parse_single_user_value_int(window_y_position_array, window_y_position_count, default_window_y_position); // top border position
     bool first_entry_only_setting = parse_single_user_value_bool(first_entry_only_array, first_entry_only_count, default_show_first_entry_only);
+    bool trim_out_keywords_setting = parse_single_user_value_bool(trim_out_keywords_array, trim_out_keywords_count, default_trim_out_keywords);
 
     float zoom_scale = 1.0;
 
@@ -701,14 +707,16 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
                     SDL_Surface* text_surface;
                     size_t matching_lines_array_user_adjusted_idx = calculate_user_entry_offset(i, user_entry_offset, matching_lines_curr_line_index);
 
-                    if (i == 0) { // first shown entry
-                        char matching_lines_first_line_text[MAX_STRING_LENGTH_CAPACITY];
-                        const char* matching_lines_first_line_prefix = "Current Task: ";
-
-                        // trim out the keywords
+                    if (trim_out_keywords_setting) {
+                        // trim out the keywords in the current line
                         for (size_t j = 0; j < keywords_count; j++) {
                             trim_keyword_prefix(matching_lines_array[matching_lines_array_user_adjusted_idx], keywords_array[j]);
                         }
+                    }
+
+                    if (i == 0) { // first shown entry should have an identifier prefix
+                        const char* matching_lines_first_line_prefix = "Current Task: ";
+                        char matching_lines_first_line_text[MAX_STRING_LENGTH_CAPACITY];
                         snprintf(matching_lines_first_line_text, sizeof(matching_lines_first_line_text), "%s%s", matching_lines_first_line_prefix, matching_lines_array[matching_lines_array_user_adjusted_idx]);
                         text_surface = check_ptr(TTF_RenderText_Blended(font_ptr, matching_lines_first_line_text, text_color), "Error loading a font text surface", TTF_GetError());
                     } else {
@@ -741,12 +749,16 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
                 keywords_count = extract_config_values("keyword", keywords_array, MAX_KEYWORDS, conf_file_lines_array, conf_file_line_count);
                 first_entry_only_count = extract_config_values("first_entry_only", first_entry_only_array, SINGLE_CONFIG_VALUE_SIZE, conf_file_lines_array, conf_file_line_count);
                 first_entry_only_setting = parse_single_user_value_bool(first_entry_only_array, first_entry_only_count, default_show_first_entry_only);
+                trim_out_keywords_count = extract_config_values("trim_out_keywords", trim_out_keywords_array, SINGLE_CONFIG_VALUE_SIZE, conf_file_lines_array, conf_file_line_count);
+                trim_out_keywords_setting = parse_single_user_value_bool(trim_out_keywords_array, trim_out_keywords_count, default_trim_out_keywords);
             } else {
                 conf_file_line_count = 0;
                 target_paths_count = extract_config_values("file", target_paths_array, MAX_TARGET_PATHS, conf_file_lines_array, conf_file_line_count);
                 keywords_count = extract_config_values("keyword", keywords_array, MAX_KEYWORDS, conf_file_lines_array, conf_file_line_count);
                 first_entry_only_count = extract_config_values("first_entry_only", first_entry_only_array, SINGLE_CONFIG_VALUE_SIZE, conf_file_lines_array, conf_file_line_count);
                 first_entry_only_setting = parse_single_user_value_bool(first_entry_only_array, first_entry_only_count, default_show_first_entry_only);
+                trim_out_keywords_count = extract_config_values("trim_out_keywords", trim_out_keywords_array, SINGLE_CONFIG_VALUE_SIZE, conf_file_lines_array, conf_file_line_count);
+                trim_out_keywords_setting = parse_single_user_value_bool(trim_out_keywords_array, trim_out_keywords_count, default_trim_out_keywords);
             }
 
             DEBUG_SHOW_LOC("Read target paths from config file\n");
