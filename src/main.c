@@ -90,24 +90,66 @@ void keyword_lines_into_array(char* file_path, char** destination_array, size_t*
     SDL_free(file_content);
 }
 
-void trim_keyword_prefix(char* text_line, char* keyword) {
-    if (!text_line || !keyword)
+void trim_leading_item_prefix(char* text_line) {
+    if (!text_line)
         return;
 
     char* char_ptr = text_line;
 
-    // For Org files
-    if (*char_ptr == '*') {
+    // Skip leading whitespace first
+    while (*char_ptr == ' ' || *char_ptr == '\t') {
+        char_ptr++;
+    }
+
+    if (*char_ptr == '*') { // * Org headings
         while (*char_ptr == '*') {
             char_ptr++;
         }
-        char_ptr++; // Skip the extra space
+        if (*char_ptr == ' ') {
+            char_ptr++; // Skip the space if it is there
+        }
+    } else if (*char_ptr == '-') { // - Items
+        while (*char_ptr == '-') {
+            char_ptr++;
+        }
+        if (*char_ptr == ' ') {
+            char_ptr++;
+        }
     }
+    else if (*char_ptr == '+') { // + Items
+        while (*char_ptr == '+') {
+            char_ptr++;
+        }
+        if (*char_ptr == ' ') {
+            char_ptr++;
+        }
+    }
+    else if (*char_ptr == '#') { // # Items
+        while (*char_ptr == '#') {
+            char_ptr++;
+        }
+        if (*char_ptr == ' ') {
+            char_ptr++;
+        }
+    }
+
+    memmove(text_line, char_ptr, strlen(char_ptr) + 1);
+}
+
+void trim_keyword_prefix(char* text_line, char* keyword) {
+    if (!text_line || !keyword || strcmp(keyword, "") == 0)
+        return;
+
+    char* char_ptr = text_line;
+
+    trim_leading_item_prefix(char_ptr);
 
     size_t compare_length = strlen(keyword);
     if (strncmp(char_ptr, keyword, compare_length) == 0) {
         char_ptr += compare_length;
-        char_ptr++; // TODO: Skip only if there is a space key here
+        if (*char_ptr == ' ') {
+            char_ptr++; // Skip only if there is a space key here
+        }
     }
 
     memmove(text_line, char_ptr, strlen(char_ptr) + 1);
@@ -680,7 +722,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
                         char matching_lines_first_line_text[MAX_STRING_LENGTH_CAPACITY];
                         const char* matching_lines_first_line_prefix = "Current Task: ";
 
-                        // trim out the keywords
+                        // trim out item prefixes and keywords
                         for (size_t j = 0; j < keywords_count; j++) {
                             trim_keyword_prefix(matching_lines_array[matching_lines_array_user_adjusted_idx], keywords_array[j]);
                         }
@@ -708,7 +750,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
                     size_t matching_lines_array_user_adjusted_idx = calculate_user_entry_offset(i, user_entry_offset, matching_lines_curr_line_index);
 
                     if (trim_out_keywords_setting) {
-                        // trim out the keywords in the current line
+                        // trim out item prefixes and keywords in the current line
                         for (size_t j = 0; j < keywords_count; j++) {
                             trim_keyword_prefix(matching_lines_array[matching_lines_array_user_adjusted_idx], keywords_array[j]);
                         }
