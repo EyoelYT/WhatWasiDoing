@@ -291,6 +291,30 @@ bool array_contains_string(char** array, size_t array_size, char* string) {
     return false;
 }
 
+bool has_leading_nonblank_char(char **character_set, size_t character_set_len, char *curr_line) {
+
+    for (size_t i = 0; i < character_set_len; i++) {
+
+        char *character = character_set[i];
+        char *line = curr_line;
+
+        while (line && *line != '\0') {
+            if (strncmp(line, " ", 1) == 0) { // if space, skip char
+                line++;
+                continue;
+            }
+
+            if (strncmp(line, character, strlen(character)) == 0) {
+                return true;
+            } else { // if not comment char, skip char
+                line++;
+                continue;
+            }
+        }
+    }
+    return false;
+}
+
 size_t extract_config_values(char* keyword, char** destination_array, size_t destination_array_length, char** source_array, size_t source_array_length) {
 
     size_t destination_array_index = 0;
@@ -298,7 +322,12 @@ size_t extract_config_values(char* keyword, char** destination_array, size_t des
     for (size_t i = 0; i < source_array_length; i++) {
 
         // copy the substring within quotes if it is to the right the keyword (into the destination array)
-        if (destination_array_index < destination_array_length && strstr(source_array[i], keyword) != NULL) { // and keyword not in source array
+        if (destination_array_index < destination_array_length && strstr(source_array[i], keyword) != NULL) { // and keyword in source array
+
+            char* comment_chars[] = {"#", ";"}; // change comment characters here!
+            if (has_leading_nonblank_char(comment_chars, sizeof(comment_chars)/sizeof(comment_chars[0]), source_array[i])) {
+                continue;
+            }
 
             char* char_start_ptr = strchr(source_array[i], '"'); // first quote
             if (!char_start_ptr)
