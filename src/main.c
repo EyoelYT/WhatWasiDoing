@@ -70,6 +70,10 @@ bool file_exists(const char* filename) {
 void keyword_lines_into_array(char* file_path, char** destination_array, size_t* destination_array_index, size_t destination_array_max_capacity, char** keywords_source_array, size_t keywords_source_count) {
     if (!file_exists(file_path)) {
         DEBUG_SHOW_LOC("SKIPPING file %s since it doesn't exist.\n", file_path);
+
+        char message[MAX_STRING_LENGTH_CAPACITY];
+        snprintf(message, MAX_STRING_LENGTH_CAPACITY, "Skipping file %s since it doesn't exist.", file_path);
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", message, NULL);
         return;
     }
     void* file_content = check_ptr(SDL_LoadFile(file_path, NULL), "Couldn't find target file..", SDL_GetError());
