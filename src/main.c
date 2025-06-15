@@ -20,15 +20,18 @@
 #define YEL "\x1B[33m"
 #define RESET "\x1B[0m"
 
+// do not tweak
+#define SINGLE_CONFIG_VALUE_SIZE 1
+
+// tweakables
 #define MAX_TARGET_PATHS 90
 #define MAX_KEYWORDS 10
 #define MAX_LINES_IN_CONFIG_FILE 100
 #define MAX_MATCHING_LINES_CAPACITY 150
 #define MAX_STRING_LENGTH_CAPACITY 512
-#define SINGLE_CONFIG_VALUE_SIZE 1
-#define ZOOM_SCALE_FACTOR 0.15f
 #define COLOR_CHANGE_FACTOR 16
 #define SDL_DELAY_FACTOR 256
+#define ZOOM_SCALE_FACTOR 0.15f
 #define MIN_ZOOM_SCALE 0.5f
 #define MAX_ZOOM_SCALE 5.0f
 #define DEMO_TARGET_FILE "todos.org"
