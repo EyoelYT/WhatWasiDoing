@@ -568,16 +568,19 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
         }
     }
     time_t target_paths_last_mtime = 0;
-    DEBUG_SHOW_LOC("Read target paths from config file, and keyword lines from the target paths.\n");
-    for (size_t i = 0; i < target_paths_count; i++) {
-        DEBUG_PRINTF(YEL "%zu: %s " RESET "\n", i + 1, target_paths_array[i]);
-        keyword_lines_into_array(target_paths_array[i], matching_lines_array, &matching_lines_curr_line_index, MAX_MATCHING_LINES_CAPACITY, keywords_array, keywords_count);
+    // use target_paths_modified to update "the existence array" and "the last modification time"
+    if (target_paths_modified(target_paths_array, target_paths_count, &target_paths_last_mtime, target_path_nonexistence_array) != 0) {
+        DEBUG_SHOW_LOC("Read target paths from config file, and keyword lines from the target paths.\n");
+        for (size_t i = 0; i < target_paths_count; i++) {
+            DEBUG_PRINTF(YEL "%zu: %s " RESET "\n", i + 1, target_paths_array[i]);
+            keyword_lines_into_array(target_paths_array[i], matching_lines_array, &matching_lines_curr_line_index, MAX_MATCHING_LINES_CAPACITY, keywords_array, keywords_count);
 
-        if (i > 0) { // check if there are files in the first place
-            struct stat file_stat;
-            check_code(stat(target_paths_array[i], &file_stat), "File modification check failed.");
-            if (file_stat.st_mtime > target_paths_last_mtime) {
-                target_paths_last_mtime = file_stat.st_mtime;
+            if (i > 0) { // check if there are files in the first place
+                struct stat target_path_file_stat;
+                check_code(stat(target_paths_array[i], &target_path_file_stat), "File modification check failed.");
+                if (target_path_file_stat.st_mtime > target_paths_last_mtime) {
+                    target_paths_last_mtime = target_path_file_stat.st_mtime;
+                }
             }
         }
     }
