@@ -391,12 +391,33 @@ int target_paths_modified(char** target_paths_array, size_t target_paths_count, 
     time_t latest_mtime = 0;
 
     for (size_t i = 0; i < target_paths_count; i++) {
+
+        // Logic:
+        //
+        // !file exists && previously exist
+        //     -> update latest "modified time"
+        //     -> update to track file as not existing
+        // file exists && previously not exist
+        //     -> uptate latest "modified time"
+        //     -> update to track file as existing
+        // !file exists && previously not exist
+        //     -> continue as is
+        // file exists && previously exist
+        //     -> check for file modification
+        //     -> continue as is
+
         if (!file_exists(target_paths_array[i]) && !target_path_nonexistence_array[i]) {
             target_path_nonexistence_array[i] = true;
-            time_t now = time(NULL); // current time
-            latest_mtime = now;
+            latest_mtime = time(NULL); // current time
             break;
         }
+
+        if (file_exists(target_paths_array[i]) && target_path_nonexistence_array[i]) {
+            target_path_nonexistence_array[i] = false;
+            latest_mtime = time(NULL); // current time
+            break;
+        }
+
         if (!file_exists(target_paths_array[i]) && target_path_nonexistence_array[i]) {
             continue;
         }
