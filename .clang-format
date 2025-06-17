@@ -5,7 +5,7 @@ ColumnLimit: 0
 
 ---
 
-Language: Cpp
+Language: C
 
 DerivePointerAlignment: false
 PointerAlignment: Left
@@ -13,3 +13,5 @@ PointerAlignment: Left
 AlignEscapedNewlines: LeftWithLastLine
 IndentPPDirectives: BeforeHash
 PPIndentWidth: 4
+
+IndentCaseLabels: true

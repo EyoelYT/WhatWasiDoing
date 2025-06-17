@@ -122,16 +122,14 @@ void trim_leading_item_prefix(char* text_line) {
         if (*char_ptr == ' ') {
             char_ptr++;
         }
-    }
-    else if (*char_ptr == '+') { // + Items
+    } else if (*char_ptr == '+') { // + Items
         while (*char_ptr == '+') {
             char_ptr++;
         }
         if (*char_ptr == ' ') {
             char_ptr++;
         }
-    }
-    else if (*char_ptr == '#') { // # Items
+    } else if (*char_ptr == '#') { // # Items
         while (*char_ptr == '#') {
             char_ptr++;
         }
@@ -298,12 +296,12 @@ bool array_contains_string(char** array, size_t array_size, char* string) {
     return false;
 }
 
-bool has_leading_nonblank_char(char **character_set, size_t character_set_len, char *curr_line) {
+bool has_leading_nonblank_char(char** character_set, size_t character_set_len, char* curr_line) {
 
     for (size_t i = 0; i < character_set_len; i++) {
 
-        char *character = character_set[i];
-        char *line = curr_line;
+        char* character = character_set[i];
+        char* line = curr_line;
 
         while (line && *line != '\0') {
             if (strncmp(line, " ", 1) == 0) { // if space, skip char
@@ -332,7 +330,7 @@ size_t extract_config_values(char* keyword, char** destination_array, size_t des
         if (destination_array_index < destination_array_length && strstr(source_array[i], keyword) != NULL) { // and keyword in source array
 
             char* comment_chars[] = {"#", ";"}; // change comment characters here!
-            if (has_leading_nonblank_char(comment_chars, sizeof(comment_chars)/sizeof(comment_chars[0]), source_array[i])) {
+            if (has_leading_nonblank_char(comment_chars, sizeof(comment_chars) / sizeof(comment_chars[0]), source_array[i])) {
                 continue;
             }
 
@@ -475,6 +473,18 @@ int path_modified(char* file_path, time_t* last_mtime, bool* conf_file_existence
     return modified;
 }
 
+void render_text_line(SDL_Renderer* renderer_ptr, SDL_Surface* text_surface, int* y_offset, float zoom_scale) {
+    SDL_Texture* text_texture = check_ptr(SDL_CreateTextureFromSurface(renderer_ptr, text_surface), "Couldn't create a SDL texture", TTF_GetError());
+    SDL_Rect src_rect = {0, 0, text_surface->w, text_surface->h};
+    SDL_Rect dst_rect = {0, *y_offset, text_surface->w * zoom_scale, text_surface->h * zoom_scale};
+    SDL_RenderCopy(renderer_ptr, text_texture, &src_rect, &dst_rect);
+
+    *y_offset += text_surface->h * zoom_scale;
+
+    SDL_FreeSurface(text_surface);
+    SDL_DestroyTexture(text_texture);
+}
+
 float clamp(float value, float min, float max) {
     if (value < min) {
         return min;
@@ -496,6 +506,115 @@ size_t calculate_user_entry_offset(size_t default_value, int entry_offset, size_
         idx += n; // make positive
 
     return (size_t)idx;
+}
+
+void interpret_sdl_events(SDL_Window* window_ptr, SDL_bool* window_is_resizable, SDL_bool* window_is_bordered, SDL_bool* window_is_on_top,
+                          bool* window_should_render, bool* window_should_run, int* window_position_x, int* window_position_y,
+                          int* window_width, int* window_height, float* zoom_scale, int* user_entry_offset,
+                          bool* config_file_should_be_read, SDL_Color* bg_color) {
+    SDL_Event sdl_events;
+    while (SDL_PollEvent(&sdl_events)) {
+        switch (sdl_events.type) {
+            case SDL_QUIT: {
+                *window_should_run = false;
+                break;
+            }
+            case SDL_WINDOWEVENT: {
+                *window_should_render = true;
+                if (sdl_events.window.event == SDL_WINDOWEVENT_CLOSE) {
+                    *window_should_run = false;
+                }
+                break;
+            }
+            case SDL_KEYDOWN: {
+                *window_should_render = true;
+                if (sdl_events.key.keysym.sym == SDLK_r && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
+                    bg_color->r -= COLOR_CHANGE_FACTOR;
+                } else if (sdl_events.key.keysym.sym == SDLK_g && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
+                    bg_color->g -= COLOR_CHANGE_FACTOR;
+                } else if (sdl_events.key.keysym.sym == SDLK_b && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
+                    bg_color->b -= COLOR_CHANGE_FACTOR;
+                } else if (sdl_events.key.keysym.sym == SDLK_a && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
+                    bg_color->a -= COLOR_CHANGE_FACTOR;
+                } else if (sdl_events.key.keysym.sym == SDLK_UP && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
+                    *user_entry_offset -= 1;
+                } else if (sdl_events.key.keysym.sym == SDLK_DOWN && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
+                    *user_entry_offset += 1;
+                } else if (sdl_events.key.keysym.sym == SDLK_EQUALS && (sdl_events.key.keysym.mod & KMOD_CTRL)) {
+                    *zoom_scale = clamp(*zoom_scale + (ZOOM_SCALE_FACTOR * (*zoom_scale)), MIN_ZOOM_SCALE, MAX_ZOOM_SCALE);
+                } else if (sdl_events.key.keysym.sym == SDLK_MINUS && (sdl_events.key.keysym.mod & KMOD_CTRL)) {
+                    *zoom_scale = clamp(*zoom_scale - (ZOOM_SCALE_FACTOR * (*zoom_scale)), MIN_ZOOM_SCALE, MAX_ZOOM_SCALE);
+                } else if (sdl_events.key.keysym.sym == SDLK_0 && (sdl_events.key.keysym.mod & KMOD_CTRL)) {
+                    *zoom_scale = 1.0;
+                } else {
+                    switch (sdl_events.key.keysym.sym) {
+                        case SDLK_0: {
+                            *user_entry_offset = 0;
+                            break;
+                        }
+                        case SDLK_c: {
+                            *config_file_should_be_read = true;
+                            break;
+                        }
+                        case SDLK_r: {
+                            bg_color->r += COLOR_CHANGE_FACTOR;
+                            break;
+                        }
+                        case SDLK_g: {
+                            bg_color->g += COLOR_CHANGE_FACTOR;
+                            break;
+                        }
+                        case SDLK_b: {
+                            bg_color->b += COLOR_CHANGE_FACTOR;
+                            break;
+                        }
+                        case SDLK_a: {
+                            bg_color->a += COLOR_CHANGE_FACTOR;
+                            break;
+                        }
+                        case SDLK_t: {
+                            // store current size and position
+                            int window_current_width, window_current_height, window_current_x_position, window_current_y_position;
+                            SDL_GetWindowSize(window_ptr, &window_current_width, &window_current_height);
+                            SDL_GetWindowPosition(window_ptr, &window_current_x_position, &window_current_y_position);
+
+                            if (*window_is_bordered == SDL_FALSE) {
+                                *window_is_bordered = SDL_TRUE;
+                            } else {
+                                *window_is_bordered = SDL_FALSE;
+                            }
+                            if (*window_is_resizable == SDL_FALSE) {
+                                *window_is_resizable = SDL_TRUE;
+                            } else {
+                                *window_is_resizable = SDL_FALSE;
+                            }
+
+                            SDL_SetWindowBordered(window_ptr, *window_is_bordered);
+                            SDL_SetWindowResizable(window_ptr, *window_is_resizable);
+                            // restore window from stored size and position to compensate for wierd SDL behavior
+                            SDL_SetWindowSize(window_ptr, window_current_width, window_current_height);
+                            SDL_SetWindowPosition(window_ptr, window_current_x_position, window_current_y_position);
+                            break;
+                        }
+                        case SDLK_z: {
+                            SDL_SetWindowPosition(window_ptr, *window_position_x, *window_position_y);
+                            SDL_SetWindowSize(window_ptr, *window_width, *window_height);
+                            break;
+                        }
+                        case SDLK_p: {
+                            if (*window_is_on_top == SDL_FALSE) {
+                                *window_is_on_top = SDL_TRUE;
+                            } else {
+                                *window_is_on_top = SDL_FALSE;
+                            }
+                            SDL_SetWindowAlwaysOnTop(window_ptr, *window_is_on_top);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused))) {
@@ -642,109 +761,9 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
     bool window_should_render = false;
     bool config_file_should_be_read = false;
     while (window_should_run) {
-        SDL_Event sdl_events;
-        while (SDL_PollEvent(&sdl_events)) {
-            switch (sdl_events.type) {
-            case SDL_QUIT: {
-                window_should_run = false;
-                break;
-            }
-            case SDL_WINDOWEVENT: {
-                window_should_render = true;
-                if (sdl_events.window.event == SDL_WINDOWEVENT_CLOSE) {
-                    window_should_run = false;
-                }
-                break;
-            }
-            case SDL_KEYDOWN: {
-                window_should_render = true;
-                if (sdl_events.key.keysym.sym == SDLK_r && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
-                    bg_color.r -= COLOR_CHANGE_FACTOR;
-                } else if (sdl_events.key.keysym.sym == SDLK_g && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
-                    bg_color.g -= COLOR_CHANGE_FACTOR;
-                } else if (sdl_events.key.keysym.sym == SDLK_b && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
-                    bg_color.b -= COLOR_CHANGE_FACTOR;
-                } else if (sdl_events.key.keysym.sym == SDLK_a && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
-                    bg_color.a -= COLOR_CHANGE_FACTOR;
-                } else if (sdl_events.key.keysym.sym == SDLK_UP && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
-                    user_entry_offset -= 1;
-                } else if (sdl_events.key.keysym.sym == SDLK_DOWN && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
-                    user_entry_offset += 1;
-                } else if (sdl_events.key.keysym.sym == SDLK_EQUALS && (sdl_events.key.keysym.mod & KMOD_CTRL)) {
-                    zoom_scale = clamp(zoom_scale + (ZOOM_SCALE_FACTOR * zoom_scale), MIN_ZOOM_SCALE, MAX_ZOOM_SCALE);
-                } else if (sdl_events.key.keysym.sym == SDLK_MINUS && (sdl_events.key.keysym.mod & KMOD_CTRL)) {
-                    zoom_scale = clamp(zoom_scale - (ZOOM_SCALE_FACTOR * zoom_scale), MIN_ZOOM_SCALE, MAX_ZOOM_SCALE);
-                } else if (sdl_events.key.keysym.sym == SDLK_0 && (sdl_events.key.keysym.mod & KMOD_CTRL)) {
-                    zoom_scale = 1.0;
-                } else {
-                    switch (sdl_events.key.keysym.sym) {
-                    case SDLK_0: {
-                        user_entry_offset = 0;
-                        break;
-                    }
-                    case SDLK_c: {
-                        config_file_should_be_read = true;
-                        break;
-                    }
-                    case SDLK_r: {
-                        bg_color.r += COLOR_CHANGE_FACTOR;
-                        break;
-                    }
-                    case SDLK_g: {
-                        bg_color.g += COLOR_CHANGE_FACTOR;
-                        break;
-                    }
-                    case SDLK_b: {
-                        bg_color.b += COLOR_CHANGE_FACTOR;
-                        break;
-                    }
-                    case SDLK_a: {
-                        bg_color.a += COLOR_CHANGE_FACTOR;
-                        break;
-                    }
-                    case SDLK_t: {
-                        // store current size and position
-                        int window_current_width, window_current_height, window_current_x_position, window_current_y_position;
-                        SDL_GetWindowSize(window_ptr, &window_current_width, &window_current_height);
-                        SDL_GetWindowPosition(window_ptr, &window_current_x_position, &window_current_y_position);
-
-                        if (window_is_bordered == SDL_FALSE) {
-                            window_is_bordered = SDL_TRUE;
-                        } else {
-                            window_is_bordered = SDL_FALSE;
-                        }
-                        if (window_is_resizable == SDL_FALSE) {
-                            window_is_resizable = SDL_TRUE;
-                        } else {
-                            window_is_resizable = SDL_FALSE;
-                        }
-
-                        SDL_SetWindowBordered(window_ptr, window_is_bordered);
-                        SDL_SetWindowResizable(window_ptr, window_is_resizable);
-                        // restore window from stored size and position to compensate for wierd SDL behavior
-                        SDL_SetWindowSize(window_ptr, window_current_width, window_current_height);
-                        SDL_SetWindowPosition(window_ptr, window_current_x_position, window_current_y_position);
-                        break;
-                    }
-                    case SDLK_z: {
-                        SDL_SetWindowPosition(window_ptr, window_position_x, window_position_y);
-                        SDL_SetWindowSize(window_ptr, window_width, window_height);
-                        break;
-                    }
-                    case SDLK_p: {
-                        if (window_is_on_top == SDL_FALSE) {
-                            window_is_on_top = SDL_TRUE;
-                        } else {
-                            window_is_on_top = SDL_FALSE;
-                        }
-                        SDL_SetWindowAlwaysOnTop(window_ptr, window_is_on_top);
-                        break;
-                    }
-                    }
-                }
-            }
-            }
-        }
+        interpret_sdl_events(window_ptr, &window_is_resizable, &window_is_bordered, &window_is_on_top, &window_should_render,
+                             &window_should_run, &window_position_x, &window_position_y, &window_width, &window_height,
+                             &zoom_scale, &user_entry_offset, &config_file_should_be_read, &bg_color);
 
         if (window_should_render) {
             SDL_SetRenderDrawColor(renderer_ptr, bg_color.r, bg_color.g, bg_color.b, bg_color.a);
@@ -764,12 +783,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
                 SDL_Color text_color = {255, 255, 255, 255};
                 SDL_Surface* text_surface = TTF_RenderText_Blended(font_ptr, text_as_none, text_color);
 
-                SDL_Texture* text_texture = SDL_CreateTextureFromSurface(renderer_ptr, text_surface);
-                SDL_Rect src_rect = {0, 0, text_surface->w, text_surface->h};
-                SDL_Rect dst_rect = {(window_width / 2) - (int)(window_width / 2.5), y_offset, text_surface->w * zoom_scale, text_surface->h * zoom_scale};
-                SDL_RenderCopy(renderer_ptr, text_texture, &src_rect, &dst_rect);
-                SDL_FreeSurface(text_surface);
-                SDL_DestroyTexture(text_texture);
+                render_text_line(renderer_ptr, text_surface, &y_offset, zoom_scale);
             } else if (first_entry_only_setting) {
                 // show only first entry
                 for (size_t i = 0; i < 1; i++) {
@@ -792,15 +806,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
                         text_surface = check_ptr(TTF_RenderText_Blended(font_ptr, matching_lines_array[matching_lines_array_user_adjusted_idx], text_color), "Error loading a font text surface", TTF_GetError());
                     }
 
-                    SDL_Texture* text_texture = check_ptr(SDL_CreateTextureFromSurface(renderer_ptr, text_surface), "Couldn't create a SDL texture", TTF_GetError());
-                    SDL_Rect src_rect = {0, 0, text_surface->w, text_surface->h};
-                    SDL_Rect dst_rect = {0, y_offset, text_surface->w * zoom_scale, text_surface->h * zoom_scale};
-                    SDL_RenderCopy(renderer_ptr, text_texture, &src_rect, &dst_rect);
-
-                    y_offset += text_surface->h * zoom_scale;
-
-                    SDL_FreeSurface(text_surface);
-                    SDL_DestroyTexture(text_texture);
+                    render_text_line(renderer_ptr, text_surface, &y_offset, zoom_scale);
                 }
             } else { // iterate over all of them
                 for (size_t i = 0; i < matching_lines_curr_line_index; i++) {
@@ -825,15 +831,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
                         text_surface = check_ptr(TTF_RenderText_Blended(font_ptr, matching_lines_array[matching_lines_array_user_adjusted_idx], text_color), "Error loading a font text surface", TTF_GetError());
                     }
 
-                    SDL_Texture* text_texture = check_ptr(SDL_CreateTextureFromSurface(renderer_ptr, text_surface), "Couldn't create a SDL texture", TTF_GetError());
-                    SDL_Rect src_rect = {0, 0, text_surface->w, text_surface->h};
-                    SDL_Rect dst_rect = {0, y_offset, text_surface->w * zoom_scale, text_surface->h * zoom_scale};
-                    SDL_RenderCopy(renderer_ptr, text_texture, &src_rect, &dst_rect);
-
-                    y_offset += text_surface->h * zoom_scale;
-
-                    SDL_FreeSurface(text_surface);
-                    SDL_DestroyTexture(text_texture);
+                    render_text_line(renderer_ptr, text_surface, &y_offset, zoom_scale);
                 }
             }
 
