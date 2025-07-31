@@ -9,6 +9,7 @@ CC := gcc
 
 SDL_CFLAGS := $(shell sdl2-config --cflags)
 SDL_LIBS   := $(shell sdl2-config --libs) -lSDL2_ttf
+WIN_LIBS   := -lShell32 -lole32 -luuid
 
 BUILD_DIR  := build
 SRC        := src/main.c
@@ -18,6 +19,7 @@ ifeq ($(OS),Windows_NT)
     # [-mconsole | -DDEBUG_MODE]
     CCFLAGS := -O0 -Wall -Wextra
     LIBS     := $(SDL_LIBS)
+    LIBS     := $(SDL_LIBS) $(WIN_LIBS)
 else
     # [-DDEBUG_MODE]
     CCFLAGS := -O0 -Wall -Wextra

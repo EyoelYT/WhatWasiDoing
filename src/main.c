@@ -1,10 +1,13 @@
+#include "ff.h"
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_keycode.h>
 #include <SDL2/SDL_messagebox.h>
+#include <SDL2/SDL_mutex.h>
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_stdinc.h>
 #include <SDL2/SDL_syswm.h>
+#include <SDL2/SDL_thread.h>
 #include <SDL2/SDL_timer.h>
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_video.h>
@@ -508,10 +511,134 @@ size_t calculate_user_entry_offset(size_t default_value, int entry_offset, size_
     return (size_t)idx;
 }
 
+typedef struct {
+    size_t window_width;
+    size_t window_height;
+    size_t window_position_x;
+    size_t window_position_y;
+} WindowParams;
+
+typedef struct {
+    FF_StringArray* ff_struct_ptr;
+    WindowParams* window_params;
+    TTF_Font* font_ptr;
+    char font_path[MAX_STRING_LENGTH_CAPACITY];
+} PopupArgs;
+
+int sdl_popup_menu(void* args) {
+    PopupArgs* pargs = (PopupArgs*)args;
+
+    const char* popup_window_title = "Choose Font";
+    SDL_DisplayMode user_display_mode_info;
+    SDL_GetDesktopDisplayMode(0, &user_display_mode_info);
+
+    // setup the popup in the middle of the screen
+    size_t popup_window_position_x = user_display_mode_info.w / 8;
+    size_t popup_window_width = user_display_mode_info.w * (6.0 / 8);
+    size_t popup_window_position_y = user_display_mode_info.h / 8;
+    size_t popup_window_height = user_display_mode_info.h * (6.0 / 8);
+
+    Uint32 popup_window_sdl_flags = SDL_WINDOW_POPUP_MENU | SDL_WINDOW_INPUT_FOCUS | SDL_WINDOW_ALWAYS_ON_TOP | SDL_WINDOW_BORDERLESS;
+
+    SDL_Window* window_ptr = check_ptr(SDL_CreateWindow(popup_window_title, popup_window_position_x, popup_window_position_y, popup_window_width, popup_window_height, popup_window_sdl_flags), "Couldn't create a SDL window", SDL_GetError());
+
+    SDL_RendererFlags sdl_renderer_flags = SDL_RENDERER_SOFTWARE;
+    SDL_Renderer* renderer_ptr = check_ptr(SDL_CreateRenderer(window_ptr, -1, sdl_renderer_flags), "Couldn't create an SDL renderer", SDL_GetError());
+
+    bool window_should_run = true;
+    bool window_should_render = false;
+
+    DEBUG_SHOW_LOC("Entering Font Selection Window Loop\n");
+    int user_entry_offset = 0;
+    bool enter_pressed = false;
+    while (window_should_run) {
+        int y_offset = 0;
+        SDL_Event sdl_events;
+        while (SDL_PollEvent(&sdl_events)) {
+            switch (sdl_events.type) {
+                case SDL_QUIT: {
+                    window_should_run = false;
+                    break;
+                }
+                case SDL_WINDOWEVENT: {
+                    window_should_render = true;
+                    if (sdl_events.window.event == SDL_WINDOWEVENT_CLOSE) {
+                        window_should_run = false;
+                    }
+                    break;
+                }
+                case SDL_KEYDOWN: {
+                    window_should_render = true;
+                    switch (sdl_events.key.keysym.sym) {
+                        case SDLK_ESCAPE: {
+                            window_should_run = false;
+                            break;
+                        }
+                        case SDLK_UP: {
+                            user_entry_offset -= 1;
+                            break;
+                        }
+                        case SDLK_DOWN: {
+                            user_entry_offset += 1;
+                            break;
+                        }
+                        case SDLK_RETURN: {
+                            enter_pressed = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (window_should_render) {
+
+            SDL_SetRenderDrawColor(renderer_ptr, 255, 255, 255, 255);
+            SDL_RenderClear(renderer_ptr);
+
+            for (size_t i = 0; i < pargs->ff_struct_ptr->size; i++) {
+
+                size_t user_adjusted_idx = calculate_user_entry_offset(i, user_entry_offset, pargs->ff_struct_ptr->size);
+                char* font_name_string = pargs->ff_struct_ptr->items[user_adjusted_idx];
+
+                if (enter_pressed) {
+                    snprintf(pargs->font_path, MAX_STRING_LENGTH_CAPACITY, "%s", font_name_string);
+                    SDL_DestroyRenderer(renderer_ptr);
+                    SDL_DestroyWindow(window_ptr);
+                    return 0;
+                }
+
+                SDL_Color text_color = {0, 0, 0, 0};
+                SDL_Color text_color_selected = {255, 255, 255, 255};
+                SDL_Color background_color_selected = {0, 0, 0, 0};
+                SDL_Surface* text_surface;
+
+                if (i < 1) { // first item should be highlighted
+                    text_surface = check_ptr(TTF_RenderText_Shaded(pargs->font_ptr, font_name_string, text_color_selected, background_color_selected), "Error loading a font text surface", TTF_GetError());
+                } else {
+                    text_surface = check_ptr(TTF_RenderText_Blended(pargs->font_ptr, font_name_string, text_color), "Error loading a font text surface", TTF_GetError());
+                }
+
+                render_text_line(renderer_ptr, text_surface, &y_offset, 1.0);
+
+                if ((size_t)(y_offset) > popup_window_height) { // don't render the rest of the lines
+                    break;
+                }
+            }
+            SDL_RenderPresent(renderer_ptr);
+            window_should_render = false;
+        }
+        SDL_Delay(SDL_DELAY_FACTOR / 8);
+    }
+    SDL_DestroyRenderer(renderer_ptr);
+    SDL_DestroyWindow(window_ptr);
+    return 0;
+}
+
 void interpret_sdl_events(SDL_Window* window_ptr, SDL_bool* window_is_resizable, SDL_bool* window_is_bordered, SDL_bool* window_is_on_top,
                           bool* window_should_render, bool* window_should_run, int* window_position_x, int* window_position_y,
                           int* window_width, int* window_height, float* zoom_scale, int* user_entry_offset,
-                          bool* config_file_should_be_read, SDL_Color* bg_color) {
+                          bool* config_file_should_be_read, SDL_Color* bg_color, char* font_path, TTF_Font** font_ptr_ptr, int* font_size_ptr) {
     SDL_Event sdl_events;
     while (SDL_PollEvent(&sdl_events)) {
         switch (sdl_events.type) {
@@ -634,6 +761,45 @@ void interpret_sdl_events(SDL_Window* window_ptr, SDL_bool* window_is_resizable,
                             SDL_SetWindowAlwaysOnTop(window_ptr, *window_is_on_top);
                             break;
                         }
+                        case SDLK_f: {
+
+                            FF_StringArray ff_struct;
+                            FF_StringArray dirs;
+
+                            ffStringArrayInit(&ff_struct, 0);
+                            ffStringArrayInit(&dirs, 0);
+
+                            ffGetPlatformFontDirs(&dirs);
+                            ffFindFonts(&dirs, &ff_struct);
+
+                            WindowParams window_params;
+                            window_params.window_width = *window_width;
+                            window_params.window_height = *window_height;
+                            window_params.window_position_x = *window_position_x;
+                            window_params.window_position_y = *window_position_y;
+
+                            PopupArgs* popup_args = malloc(sizeof *popup_args);
+                            popup_args->ff_struct_ptr = &ff_struct;
+                            popup_args->window_params = &window_params;
+                            snprintf(popup_args->font_path, MAX_STRING_LENGTH_CAPACITY, "%s", font_path);
+                            popup_args->font_ptr = *font_ptr_ptr;
+
+                            sdl_popup_menu(popup_args);
+
+                            if (!(strcmp(popup_args->font_path, font_path) == 0)) {
+                                snprintf(font_path, MAX_STRING_LENGTH_CAPACITY, "%s", popup_args->font_path);
+                                DEBUG_SHOW_LOC("\nloading font \"%s\"\n", font_path);
+                                TTF_CloseFont(*font_ptr_ptr);
+                                *font_ptr_ptr = check_ptr(TTF_OpenFont(font_path, *font_size_ptr), "Error loading font", TTF_GetError());
+                                DEBUG_PRINTF("font is now  \"%s\" (font_ptr set!)\n", font_path);
+                            }
+
+                            free(popup_args);
+
+                            ffStringArrayDestroy(&ff_struct);
+                            ffStringArrayDestroy(&dirs);
+                            break;
+                        }
                     }
                 }
             }
@@ -737,9 +903,9 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
 
     DEBUG_SHOW_LOC("Loading font\n");
 #ifdef _WIN32
-    const char* font_path = "C:\\Users\\Eyu\\Projects\\probe\\nerd-fonts\\patched-fonts\\Iosevka\\IosevkaNerdFont-Regular.ttf";
+    char font_path[MAX_STRING_LENGTH_CAPACITY] = "C:\\Users\\Eyu\\Projects\\probe\\nerd-fonts\\patched-fonts\\Iosevka\\IosevkaNerdFont-Regular.ttf";
 #else
-    const char* font_path = "/usr/share/fonts/adobe-source-code-pro/SourceCodePro-Regular.otf";
+    char font_path[MAX_STRING_LENGTH_CAPACITY] = "/usr/share/fonts/adobe-source-code-pro/SourceCodePro-Regular.otf";
 #endif
     int font_size = 36;
     TTF_Font* font_ptr = check_ptr(TTF_OpenFont(font_path, font_size), "Error loading font", TTF_GetError());
@@ -770,7 +936,7 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
     // Adjust centering after receiving the user's desired width; TODO: make it the user's option
     window_position_x = centered_window_x_position(user_display_mode_info.w, window_width);
 
-    Uint32 window_sdl_flags = SDL_WINDOW_BORDERLESS | SDL_WINDOW_ALWAYS_ON_TOP;
+    Uint32 window_sdl_flags = SDL_WINDOW_BORDERLESS | SDL_WINDOW_ALWAYS_ON_TOP | SDL_WINDOW_INPUT_FOCUS;
     SDL_Window* window_ptr = check_ptr(SDL_CreateWindow(window_title, window_position_x, window_position_y, window_width, window_height, window_sdl_flags), "Couldn't create a SDL window", SDL_GetError());
     SDL_bool window_is_bordered = SDL_FALSE;
     SDL_bool window_is_resizable = SDL_FALSE;
@@ -782,12 +948,12 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
     DEBUG_SHOW_LOC("Entering SDL Event Loop\n");
     int user_entry_offset = 0;
     bool window_should_run = true;
-    bool window_should_render = false;
+    bool window_should_render = true;
     bool config_file_should_be_read = false;
     while (window_should_run) {
         interpret_sdl_events(window_ptr, &window_is_resizable, &window_is_bordered, &window_is_on_top, &window_should_render,
                              &window_should_run, &window_position_x, &window_position_y, &window_width, &window_height,
-                             &zoom_scale, &user_entry_offset, &config_file_should_be_read, &bg_color);
+                             &zoom_scale, &user_entry_offset, &config_file_should_be_read, &bg_color, font_path, &font_ptr, &font_size);
 
         if (window_should_render) {
             SDL_SetRenderDrawColor(renderer_ptr, bg_color.r, bg_color.g, bg_color.b, bg_color.a);
