@@ -46,7 +46,7 @@
     #define DEBUG_PRINTF(...) ((void)0)
 #endif
 
-void* check_ptr(void* ptr, char* message_on_failure __attribute__((unused)), const char* error_fetcher __attribute__((unused))) {
+void* check_ptr(void* ptr, const char* message_on_failure __attribute__((unused)), const char* error_fetcher __attribute__((unused))) {
     if (ptr == NULL) {
         DEBUG_PRINTF("Something (ptr) wrong in SDL. %s. %s\n", message_on_failure, error_fetcher);
         abort();
@@ -70,7 +70,7 @@ bool file_exists(const char* filename) {
     return false;
 }
 
-void keyword_lines_into_array(char* file_path, char** destination_array, size_t* destination_array_index, size_t destination_array_max_capacity, char** keywords_source_array, size_t keywords_source_count) {
+void keyword_lines_into_array(const char* file_path, char** destination_array, size_t* destination_array_index, size_t destination_array_max_capacity, char** keywords_source_array, size_t keywords_source_count) {
     if (!file_exists(file_path)) {
         DEBUG_SHOW_LOC("SKIPPING file %s since it doesn't exist.\n", file_path);
 
@@ -528,24 +528,48 @@ void interpret_sdl_events(SDL_Window* window_ptr, SDL_bool* window_is_resizable,
             }
             case SDL_KEYDOWN: {
                 *window_should_render = true;
-                if (sdl_events.key.keysym.sym == SDLK_r && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
-                    bg_color->r -= COLOR_CHANGE_FACTOR;
-                } else if (sdl_events.key.keysym.sym == SDLK_g && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
-                    bg_color->g -= COLOR_CHANGE_FACTOR;
-                } else if (sdl_events.key.keysym.sym == SDLK_b && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
-                    bg_color->b -= COLOR_CHANGE_FACTOR;
-                } else if (sdl_events.key.keysym.sym == SDLK_a && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
-                    bg_color->a -= COLOR_CHANGE_FACTOR;
-                } else if (sdl_events.key.keysym.sym == SDLK_UP && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
-                    *user_entry_offset -= 1;
-                } else if (sdl_events.key.keysym.sym == SDLK_DOWN && (sdl_events.key.keysym.mod & KMOD_SHIFT)) {
-                    *user_entry_offset += 1;
-                } else if (sdl_events.key.keysym.sym == SDLK_EQUALS && (sdl_events.key.keysym.mod & KMOD_CTRL)) {
-                    *zoom_scale = clamp(*zoom_scale + (ZOOM_SCALE_FACTOR * (*zoom_scale)), MIN_ZOOM_SCALE, MAX_ZOOM_SCALE);
-                } else if (sdl_events.key.keysym.sym == SDLK_MINUS && (sdl_events.key.keysym.mod & KMOD_CTRL)) {
-                    *zoom_scale = clamp(*zoom_scale - (ZOOM_SCALE_FACTOR * (*zoom_scale)), MIN_ZOOM_SCALE, MAX_ZOOM_SCALE);
-                } else if (sdl_events.key.keysym.sym == SDLK_0 && (sdl_events.key.keysym.mod & KMOD_CTRL)) {
-                    *zoom_scale = 1.0;
+                if (sdl_events.key.keysym.mod & KMOD_SHIFT) {
+                    switch (sdl_events.key.keysym.sym) {
+                        case SDLK_r: {
+                            bg_color->r -= COLOR_CHANGE_FACTOR;
+                            break;
+                        }
+                        case SDLK_g: {
+                            bg_color->g -= COLOR_CHANGE_FACTOR;
+                            break;
+                        }
+                        case SDLK_b: {
+                            bg_color->b -= COLOR_CHANGE_FACTOR;
+                            break;
+                        }
+                        case SDLK_a: {
+                            bg_color->a -= COLOR_CHANGE_FACTOR;
+                            break;
+                        }
+                        case SDLK_UP: {
+                            *user_entry_offset -= 1;
+                            break;
+                        }
+                        case SDLK_DOWN: {
+                            *user_entry_offset += 1;
+                            break;
+                        }
+                    }
+                } else if (sdl_events.key.keysym.mod & KMOD_CTRL) {
+                    switch (sdl_events.key.keysym.sym) {
+                        case SDLK_EQUALS: {
+                            *zoom_scale = clamp(*zoom_scale + (ZOOM_SCALE_FACTOR * (*zoom_scale)), MIN_ZOOM_SCALE, MAX_ZOOM_SCALE);
+                            break;
+                        }
+                        case SDLK_MINUS: {
+                            *zoom_scale = clamp(*zoom_scale - (ZOOM_SCALE_FACTOR * (*zoom_scale)), MIN_ZOOM_SCALE, MAX_ZOOM_SCALE);
+                            break;
+                        }
+                        case SDLK_0: {
+                            *zoom_scale = 1.0;
+                            break;
+                        }
+                    }
                 } else {
                     switch (sdl_events.key.keysym.sym) {
                         case SDLK_0: {
