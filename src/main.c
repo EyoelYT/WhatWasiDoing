@@ -1,4 +1,18 @@
 #include "ff.h"
+#if defined(__APPLE__)
+#include <SDL.h>
+#include <SDL_events.h>
+#include <SDL_keycode.h>
+#include <SDL_messagebox.h>
+#include <SDL_mutex.h>
+#include <SDL_render.h>
+#include <SDL_stdinc.h>
+#include <SDL_syswm.h>
+#include <SDL_thread.h>
+#include <SDL_timer.h>
+#include <SDL_ttf.h>
+#include <SDL_video.h>
+#else
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_keycode.h>
@@ -11,8 +25,8 @@
 #include <SDL2/SDL_timer.h>
 #include <SDL2/SDL_ttf.h>
 #include <SDL2/SDL_video.h>
+#endif
 #include <stdbool.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -904,6 +918,8 @@ int main(int argc __attribute__((unused)), char* argv[] __attribute__((unused)))
     DEBUG_SHOW_LOC("Loading font\n");
 #ifdef _WIN32
     char font_path[MAX_STRING_LENGTH_CAPACITY] = "C:\\Users\\Eyu\\Projects\\probe\\nerd-fonts\\patched-fonts\\Iosevka\\IosevkaNerdFont-Regular.ttf";
+#elif defined(__APPLE__)
+    char font_path[MAX_STRING_LENGTH_CAPACITY] = "/System/Library/Fonts/Menlo.ttc";
 #else
     char font_path[MAX_STRING_LENGTH_CAPACITY] = "/usr/share/fonts/adobe-source-code-pro/SourceCodePro-Regular.otf";
 #endif
